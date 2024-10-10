@@ -24,9 +24,6 @@ class MailService {
         <div>
             <h1>Активация аккаунта по ссылке</h1>
             <a href="${link}">${link}</a>
-            <div>
-              <a href="https://vk.com/strengthawakens">Антоха</a>
-            </div>
         </div>
       `,
     })
