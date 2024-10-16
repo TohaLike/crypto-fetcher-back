@@ -6,11 +6,16 @@ class UserContoller {
   async registration(req, res, next) {
     try {
       const errors = validationResult(req);
+      console.log(req)
+
       if (!errors.isEmpty()) {
         return next(ApiError.BadRequest("Ошибка при валидации", errors.array()))
       }
-      const { email, password } = req.body
-      const userData = await userService.registration(email, password)
+      const { email, password, day, month, year } = req.body
+      
+      const dateOfBirth = new Date(Date.UTC(year, month - 1, day, 0, 0, 0))
+
+      const userData = await userService.registration(email, password, dateOfBirth)
       res.cookie("refreshToken", userData.refreshToken, { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true })
       return res.json(userData)
     } catch (e) {
