@@ -4,6 +4,8 @@ export default class UserDto {
   date;
   id;
   isActivated;
+  createdAt;
+  profileVerification;
 
   constructor(model) {
     this.name = model.name;
@@ -11,5 +13,7 @@ export default class UserDto {
     this.date = model.date;
     this.id = model._id;
     this.isActivated = model.isActivated;
+    this.createdAt = model.createdAt;
+    this.profileVerification = model.profileVerification;
   }
 }

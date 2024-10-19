@@ -8,6 +8,8 @@ const UserSchema = new Schema({
   isActivated: { type: Boolean, default: false },
   activationLink: { type: String },
   password: { type: String, required: true },
+  createdAt: { type: Date, required: true },
+  profileVerification: { type: Boolean }
 })
 
 export const userModel = model("User", UserSchema)
