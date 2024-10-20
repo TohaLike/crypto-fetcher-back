@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { userControllers } from "../controllers/user-controller.js";
+import { userControllers } from "../controllers/user-controller.js"; 
+import { messageController } from "../controllers/message-controller.js";
 import { body } from "express-validator"
 import { authMiddleware } from "../middlewares/auth-middleware.js";
 
@@ -14,6 +15,8 @@ router.post("/registration",
   body("year").isLength({ min: 1 }),
   userControllers.registration
 )
+
+router.post("/message", messageController.sendMessage)
 router.post("/login", userControllers.login)
 router.post("/logout", userControllers.logout)
 router.get("/activate/:link", userControllers.activate)

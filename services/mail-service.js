@@ -20,7 +20,7 @@ class MailService {
       subject: "Активация аккаунта на " + "http://localhost:4000",
       text: "cssa",
       html:
-        `
+      `
         <div>
             <h1>Активация аккаунта по ссылке</h1>
             <a href="${link}">${link}</a>
