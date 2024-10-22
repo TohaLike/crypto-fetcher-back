@@ -5,6 +5,7 @@ import dotenv from "dotenv"
 import cookieParser from "cookie-parser";
 import { routers } from "./router/index.js"
 import { errorMiddleware } from "./middlewares/error-middleware.js";
+import { messageService } from "./services/rabbitmq-service.js";
 
 dotenv.config()
 
