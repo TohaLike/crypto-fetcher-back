@@ -5,12 +5,17 @@ import dotenv from "dotenv"
 import cookieParser from "cookie-parser";
 import { routers } from "./router/index.js"
 import { errorMiddleware } from "./middlewares/error-middleware.js";
-import { messageService } from "./services/rabbitmq-service.js";
+import { Server } from "socket.io";
+import { socketService } from "./services/socket-service.js";
+
 
 dotenv.config()
 
-const PORT = process.env.PORT || 4000
-const app = express()
+const PORT = process.env.PORT || 4000;
+const app = express();
+
+const server = app.listen(PORT, () => console.log(`Server has been started on port ${PORT}`))
+const io = new Server(server, { cors: { origin: process.env.CLIENT_URL } });
 
 app.use(express.json());
 app.use(cookieParser());
@@ -20,11 +25,19 @@ app.use(cors({
 }));
 app.use("/api", routers)
 app.use(errorMiddleware)
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token
+  if (token) {
+    next();
+  } else {
+    next(new Error("trash"));
+  }
+});
 
 async function main() {
   try {
     await mongoose.connect(process.env.DB_URL)
-    app.listen(PORT, () => console.log(`Server has been started on port ${PORT}`))
+    io.on("connection", (socket) => socketService.handleConnection(socket));
   } catch (e) {
     console.log(e)
   }

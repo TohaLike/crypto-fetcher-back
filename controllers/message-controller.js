@@ -1,14 +1,23 @@
-import { messageService } from "../services/rabbitmq-service.js"
+import { validationResult } from "express-validator";
+import { socketService } from "../services/socket-service.js";
+import ApiError from "../exceptions/api-error.js";
 
 class MessageController {
   async sendMessage(req, res, next) {
     try {
-      const { message } = req.body
-      // const data = await messageService.sendMessage("fanout", "rKey", message)
+      const errors = validationResult(req);
 
-      return res.json(message)
+      if (!errors.isEmpty()) {
+        return next(ApiError.BadRequest("Ошибка при валидации", errors.array()))
+      }
+      
+      const { message, userId } = req.body;
+
+      const messageData = await socketService.sendMessage(message, userId);
+    
+      return res.json(messageData)
     } catch (e) {
-      console.log("E", e)
+      next(e)
     }
   }
 }
