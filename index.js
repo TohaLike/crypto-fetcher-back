@@ -15,7 +15,16 @@ const PORT = process.env.PORT || 4000;
 const app = express();
 
 const server = app.listen(PORT, () => console.log(`Server has been started on port ${PORT}`))
-const io = new Server(server, { cors: { origin: process.env.CLIENT_URL } });
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_URL,
+    methods: ["GET", "POST"]
+  },
+  connectionStateRecovery: {
+    maxDisconnectionDuration: 2 * 60 * 1000,
+    skipMiddlewares: true
+  }
+});
 
 app.use(express.json());
 app.use(cookieParser());

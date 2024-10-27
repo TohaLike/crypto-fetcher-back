@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { userControllers } from "../controllers/user-controller.js";
-import { messageController } from "../controllers/message-controller.js";
 import { body } from "express-validator"
 import { authMiddleware } from "../middlewares/auth-middleware.js";
+import { socketController } from "../controllers/socket-controller.js";
 
 const router = new Router();
 
@@ -16,9 +16,12 @@ router.post("/registration",
   userControllers.registration
 )
 
-router.post("/message", body("message").isLength({ min: 1 }), messageController.sendMessage)
+router.post("/room", socketController.createRoom)
+router.post("/message", body("message").isLength({ min: 1 }), socketController.sendMessage)
 router.post("/login", userControllers.login)
 router.post("/logout", userControllers.logout)
+
+router.get("/rooms", socketController.getAllRooms)
 router.get("/activate/:link", userControllers.activate)
 router.get("/refresh", userControllers.refresh)
 router.get("/users", authMiddleware, userControllers.getUsers)

@@ -17,7 +17,7 @@ class UserService {
     const hashPassword = await bcrypt.hash(password, 3);
     const activationLink = uuid();
 
-    const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0)); 
+    const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
     const createdAt = new Date();
 
     const user = await userModel.create({ name, email, date, password: hashPassword, activationLink, createdAt });
