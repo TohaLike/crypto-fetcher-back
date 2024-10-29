@@ -46,7 +46,7 @@ io.use((socket, next) => {
 async function main() {
   try {
     await mongoose.connect(process.env.DB_URL)
-    io.on("connection", (socket) => socketService.handleConnection(socket));
+    io.on("connection", (socket) => socketService.onConnection(io, socket));
   } catch (e) {
     console.log(e)
   }

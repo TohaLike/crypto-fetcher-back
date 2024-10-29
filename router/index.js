@@ -17,11 +17,11 @@ router.post("/registration",
 )
 
 router.post("/room", socketController.createRoom)
-router.post("/message", body("message").isLength({ min: 1 }), socketController.sendMessage)
 router.post("/login", userControllers.login)
 router.post("/logout", userControllers.logout)
 
-router.get("/rooms", socketController.getAllRooms)
+router.get("/messages", socketController.getMessages)
+router.get("/rooms", authMiddleware, socketController.getAllRooms)
 router.get("/activate/:link", userControllers.activate)
 router.get("/refresh", userControllers.refresh)
 router.get("/users", authMiddleware, userControllers.getUsers)

@@ -7,44 +7,44 @@ import { emitWithRetry } from "../promises/emitWithRetry-promise.js"
 import { tokenService } from "./token-service.js"
 
 class SocketService {
-  constructor(socket, message) {
-    this.socket = socket
-    this.message = message
-  }
-
-  handleConnection(socket) {
-    this.socket = socket
+  onConnection(io, socket) {
     console.log("user connected: ", socket.id)
 
-    socket.on("join__room", async (roomId) => {
-      await socket.join(roomId)
-      console.log("Joined room: ", roomId)
-    })
+    console.log(socket.handshake)
 
-    socket.on("leave__room", async (roomId) => {
-      await socket.leave(roomId)
+    this.joinRoom(io, socket)
+
+    socket.on("leave__room", (roomId) => {
+      socket.leave(roomId)
       console.log("Left room: ", roomId)
     })
 
-    this.socket.on("send__message", (message, userId) => {
-      console.log(message)
-    })
+    this.sendMessage(io, socket)
 
     socket.on("disconnect", () => console.log("user disconnected: ", socket.id))
   }
 
-  async sendMessage(message, userId) {
-    const createdAt = new Date();
 
-    const messageData = await messageModel.create({ message, createdAt, userId });
-    const messageDto = new MessageDto(messageData);
-
-    return { ...messageDto }
+  joinRoom(io, socket) {
+    socket.on("join__room", (roomId) => {
+      socket.join(roomId)
+      console.log("Joined room: ", roomId)
+    })
   }
 
-  async createRoom(name, userId) {
+
+  sendMessage(io, socket) {
+    socket.on("send__message", async (userName, message, userId) => {
+      const createdAt = new Date();
+      await messageModel.create({ message, createdAt, userId });
+
+      io.emit("send__message", userName, message)
+    })
+  }
+
+  async createRoom(name, ownerId, userId) {
     const createdAt = new Date();
-    const createRoom = await roomModel.create({ name, owner: userId, createdAt });
+    const createRoom = await roomModel.create({ name, owner: ownerId, createdAt, usersId: [ownerId, userId] });
     const roomDto = new RoomDto(createRoom);
 
     return { ...roomDto }
@@ -54,14 +54,16 @@ class SocketService {
     if (!refreshToken) {
       throw ApiError.UnauthorizedError()
     }
-
     const userData = tokenService.validateRefreshToken(refreshToken)
-
     const rooms = await roomModel.find({ owner: userData.id });
-
     const roomDto = rooms.map((e) => new RoomDto(e))
 
-    return { ...roomDto }
+    return roomDto
+  }
+
+  async getMessages() {
+    const messages = await messageModel.find();
+    return messages
   }
 }
 

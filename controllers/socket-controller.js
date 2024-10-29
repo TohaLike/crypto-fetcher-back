@@ -3,19 +3,11 @@ import { socketService } from "../services/socket-service.js";
 import ApiError from "../exceptions/api-error.js";
 
 class SocketController {
-  async sendMessage(req, res, next) {
+
+  async getMessages(req, res, next) {
     try {
-      const errors = validationResult(req);
-
-      if (!errors.isEmpty()) {
-        return next(ApiError.BadRequest("Ошибка при валидации", errors.array()))
-      }
-
-      const { message, userId } = req.body;
-
-      const messageData = await socketService.sendMessage(message, userId);
-
-      return res.json(messageData)
+      const messages = await socketService.getMessages()
+      return res.json(messages)
     } catch (e) {
       next(e)
     }
@@ -23,8 +15,8 @@ class SocketController {
 
   async createRoom(req, res, next) {
     try {
-      const { name, userId } = req.body
-      const roomData = await socketService.createRoom(name, userId)
+      const { name, ownerId, userId } = req.body
+      const roomData = await socketService.createRoom(name, ownerId, userId)
       return res.json(roomData)
     } catch (e) {
       next(e)
