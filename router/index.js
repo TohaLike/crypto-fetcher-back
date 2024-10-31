@@ -20,7 +20,7 @@ router.post("/room", socketController.createRoom)
 router.post("/login", userControllers.login)
 router.post("/logout", userControllers.logout)
 
-router.get("/messages", socketController.getMessages)
+router.get("/messages/user", authMiddleware, socketController.getAllMessages)
 router.get("/rooms", authMiddleware, socketController.getAllRooms)
 router.get("/activate/:link", userControllers.activate)
 router.get("/refresh", userControllers.refresh)

@@ -4,9 +4,14 @@ import ApiError from "../exceptions/api-error.js";
 
 class SocketController {
 
-  async getMessages(req, res, next) {
+  async getAllMessages(req, res, next) {
     try {
-      const messages = await socketService.getMessages()
+      const { refreshToken } = req.cookies
+
+      const roomId = req.query.res
+
+      const messages = await socketService.getAllMessages(refreshToken, roomId)
+
       return res.json(messages)
     } catch (e) {
       next(e)

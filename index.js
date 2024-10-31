@@ -34,6 +34,7 @@ app.use(cors({
 }));
 app.use("/api", routers)
 app.use(errorMiddleware)
+
 io.use((socket, next) => {
   const token = socket.handshake.auth.token
   if (token) {

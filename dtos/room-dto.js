@@ -3,13 +3,13 @@ export default class RoomDto {
   owner;
   id;
   createdAt;
-  userdId;
+  usersId;
 
   constructor(model) {
     this.name = model.name
     this.owner = model.owner
     this.id = model._id
     this.createdAt = model.createdAt
-    this.userdId = model.usersId
+    this.usersId = model.usersId
   }
 }
