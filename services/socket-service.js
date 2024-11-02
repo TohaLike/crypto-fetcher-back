@@ -45,9 +45,6 @@ class SocketService {
 
   async createRoom(name, ownerId, userId) {
     const roomId = [userId, ownerId].join('-');
-
-    console.log(roomId)
-
     const createdAt = new Date();
 
     const createRoom = await roomModel.create({
@@ -59,7 +56,6 @@ class SocketService {
     });
 
     const roomDto = new RoomDto(createRoom);
-
     return { ...roomDto }
   }
 
@@ -81,11 +77,9 @@ class SocketService {
     const roomData = await roomModel.findOne({ roomId })
     const findUser = roomData?.usersId?.some((e) => e.toString() === userData.id)
 
-    if (!findUser) {
-      throw ApiError.BadRequest("no")
-    }
+    if (!findUser) throw ApiError.BadRequest("Нет сообщений")
 
-    const messages = await messageModel.find({ roomId: roomData.id});
+    const messages = await messageModel.find({ roomId: roomData.id });
 
     return messages
   }

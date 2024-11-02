@@ -21,7 +21,7 @@ router.post("/login", userControllers.login)
 router.post("/logout", userControllers.logout)
 
 router.get("/profile/:user", authMiddleware, userControllers.getProfile)
-router.get("/messages/user", socketController.getAllMessages)
+router.get("/messages/user", authMiddleware, socketController.getAllMessages)
 router.get("/rooms", authMiddleware, socketController.getAllRooms)
 router.get("/activate/:link", userControllers.activate)
 router.get("/refresh", userControllers.refresh)
