@@ -8,9 +8,11 @@ class SocketController {
     try {
       const { refreshToken } = req.cookies
 
-      const roomId = req.query.res
+      const userId = req.query.res
 
-      const messages = await socketService.getAllMessages(refreshToken, roomId)
+      // console.log(userId)
+
+      const messages = await socketService.getAllMessages(refreshToken, userId)
 
       return res.json(messages)
     } catch (e) {

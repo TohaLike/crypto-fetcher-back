@@ -82,6 +82,14 @@ class UserService {
     return { ...tokens, user: userDto }
   }
 
+  async getProfile(refreshToken, params) {
+    // if (refreshToken) throw ApiError.UnauthorizedError()
+
+    const profile = await userModel.findOne({ _id: params.user })
+
+    return profile
+  }
+
   async getAllUsers() {
     const users = await userModel.find()
     return users

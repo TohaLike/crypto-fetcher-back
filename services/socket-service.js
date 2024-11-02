@@ -28,23 +28,30 @@ class SocketService {
       socket.join(roomId)
       console.log("Joined room: ", roomId)
 
-      const messages = await messageModel.find({ roomId })
+      const roomData = await roomModel.findOne({ roomId: roomId })
+
+      socket.emit("room__id", roomData?.id)
     })
   }
 
   sendMessage(io, socket) {
-    socket.on("send__message", async (userName, message, userId, roomId) => {
+    socket.on("send__message", async (userName, message, userId, roomId, roomKey,) => {
       const createdAt = new Date();
-      await messageModel.create({ message, createdAt, userId, roomId });
+      await messageModel.create({ sender: userName, message, createdAt, userId, roomId });
 
-      io.to(roomId).emit("send__message", userName, message, roomId)
+      io.to(roomKey).emit("send__message", userName, message)
     })
   }
 
   async createRoom(name, ownerId, userId) {
+    const roomId = [userId, ownerId].join('-');
+
+    console.log(roomId)
+
     const createdAt = new Date();
 
     const createRoom = await roomModel.create({
+      roomId,
       name,
       owner: ownerId,
       createdAt,
@@ -55,7 +62,6 @@ class SocketService {
 
     return { ...roomDto }
   }
-
 
   async getAllRooms(refreshToken) {
     if (!refreshToken) {
@@ -69,22 +75,18 @@ class SocketService {
   }
 
   async getAllMessages(refreshToken, roomId) {
-    if (!refreshToken) {
-      throw ApiError.UnauthorizedError()
-    }
+    if (!refreshToken) throw ApiError.UnauthorizedError()
 
     const userData = tokenService.validateRefreshToken(refreshToken)
-    const roomData = await roomModel.findOne({ _id: roomId })
-
-    const findUser = roomData.usersId.some((e) =>
-      e.toString() === userData.id
-    )
+    const roomData = await roomModel.findOne({ roomId })
+    const findUser = roomData?.usersId?.some((e) => e.toString() === userData.id)
 
     if (!findUser) {
-      throw ApiError.BadRequest("Нет")
+      throw ApiError.BadRequest("no")
     }
-    
-    const messages = await messageModel.find({ roomId });
+
+    const messages = await messageModel.find({ roomId: roomData.id});
+
     return messages
   }
 }
