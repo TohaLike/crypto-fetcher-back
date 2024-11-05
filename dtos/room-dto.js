@@ -1,5 +1,4 @@
 export default class RoomDto {
-  roomId;
   name;
   owner;
   id;
@@ -7,7 +6,6 @@ export default class RoomDto {
   usersId;
 
   constructor(model) {
-    this.roomId = model.roomId;
     this.name = model.name
     this.owner = model.owner
     this.id = model._id

@@ -7,12 +7,7 @@ class SocketController {
   async getAllMessages(req, res, next) {
     try {
       const { refreshToken } = req.cookies
-
-      const userId = req.query.res
-
-      // console.log(userId)
-
-      const messages = await socketService.getAllMessages(refreshToken, userId)
+      const messages = await socketService.getAllMessages(refreshToken, req.query.res)
 
       return res.json(messages)
     } catch (e) {
@@ -22,8 +17,9 @@ class SocketController {
 
   async createRoom(req, res, next) {
     try {
-      const { name, ownerId, userId } = req.body
-      const roomData = await socketService.createRoom(name, ownerId, userId)
+      const { refreshToken } = req.cookies
+      const { userId } = req.body
+      const roomData = await socketService.createRoom(refreshToken, userId)
       return res.json(roomData)
     } catch (e) {
       next(e)

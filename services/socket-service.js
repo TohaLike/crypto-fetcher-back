@@ -1,3 +1,4 @@
+import * as cookie from 'cookie'
 import MessageDto from "../dtos/message-dto.js"
 import RoomDto from "../dtos/room-dto.js"
 import ApiError from "../exceptions/api-error.js"
@@ -27,42 +28,45 @@ class SocketService {
     socket.on("join__room", async (roomId) => {
       socket.join(roomId)
       console.log("Joined room: ", roomId)
-
-      const roomData = await roomModel.findOne({ roomId: roomId })
-
-      socket.emit("room__id", roomData?.id)
     })
   }
 
   sendMessage(io, socket) {
-    socket.on("send__message", async (userName, message, userId, roomId, roomKey,) => {
-      const createdAt = new Date();
-      await messageModel.create({ sender: userName, message, createdAt, userId, roomId });
+    socket.on("send__message", async (message, roomId) => {
+      const token = cookie.parse(socket.handshake.headers.cookie)
+      const userData = tokenService.validateRefreshToken(token.refreshToken)
+      const userId = userData.id
+      const sender = userData.name
 
-      io.to(roomKey).emit("send__message", userName, message)
+      const createdAt = new Date();
+
+      await messageModel.create({ sender, message, createdAt, userId, roomId });
+
+      io.to(roomId).emit("send__message", sender, message)
     })
   }
 
-  async createRoom(name, ownerId, userId) {
-    const roomId = [userId, ownerId].join('-');
+  async createRoom(refreshToken, userId) {
+    if (!refreshToken) throw ApiError.UnauthorizedError()
+
+    const userData = tokenService.validateRefreshToken(refreshToken)
     const createdAt = new Date();
 
     const createRoom = await roomModel.create({
-      roomId,
-      name,
-      owner: ownerId,
+      name: userData.name,
+      owner: userData.id,
       createdAt,
-      usersId: [ownerId, userId]
+      usersId: [userData.id, userId]
     });
 
     const roomDto = new RoomDto(createRoom);
+
     return { ...roomDto }
   }
 
   async getAllRooms(refreshToken) {
-    if (!refreshToken) {
-      throw ApiError.UnauthorizedError()
-    }
+    if (!refreshToken) throw ApiError.UnauthorizedError()
+
     const userData = tokenService.validateRefreshToken(refreshToken)
     const rooms = await roomModel.find({ usersId: userData.id });
     const roomDto = rooms.map((e) => new RoomDto(e))
@@ -70,14 +74,14 @@ class SocketService {
     return roomDto
   }
 
-  async getAllMessages(refreshToken, roomId) {
+  async getAllMessages(refreshToken, id) {
     if (!refreshToken) throw ApiError.UnauthorizedError()
 
     const userData = tokenService.validateRefreshToken(refreshToken)
-    const roomData = await roomModel.findOne({ roomId })
+    const roomData = await roomModel.findOne({ _id: id })
     const findUser = roomData?.usersId?.some((e) => e.toString() === userData.id)
 
-    if (!findUser) throw ApiError.BadRequest("Нет сообщений")
+    if (!findUser) throw ApiError.BadRequest("В не состоите в этой беседе!")
 
     const messages = await messageModel.find({ roomId: roomData.id });
 

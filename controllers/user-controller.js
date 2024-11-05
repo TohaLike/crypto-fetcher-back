@@ -66,9 +66,8 @@ class UserContoller {
 
   async getProfile(req, res, next) {
     try {
-      const { refreshToken } = req.cookies
       const { params } = req
-      const profile = await userService.getProfile(refreshToken, params)
+      const profile = await userService.getProfile(params)
       return res.json(profile)
     } catch (e) {
       next(e)
