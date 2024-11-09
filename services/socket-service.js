@@ -6,6 +6,7 @@ import { messageModel } from "../models/message-model.js"
 import { roomModel } from "../models/room-model.js"
 import { userModel } from "../models/user-model.js"
 import { tokenService } from "./token-service.js"
+import mongoose from 'mongoose'
 
 class SocketService {
   onConnection(io, socket) {
@@ -71,7 +72,18 @@ class SocketService {
     const rooms = await roomModel.find({ usersId: userData.id });
     const roomDto = rooms.map((e) => new RoomDto(e))
 
-    return roomDto
+    const latestMessage = await messageModel.aggregate([
+      { $match: { roomId: { $in: rooms.map(e => e._id) } } },
+      { $sort: { _id: -1, } },
+      {
+        $group: {
+          _id: { roomId: "$roomId" },
+          latestMessage: { $first: "$message" },
+        },
+      },
+    ])
+
+    return { latestMessage: latestMessage, rooms: roomDto }
   }
 
   async getAllMessages(refreshToken, id) {
