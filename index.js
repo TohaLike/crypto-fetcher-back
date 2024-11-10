@@ -25,6 +25,7 @@ const io = new Server(server, {
     skipMiddlewares: true
   }
 });
+app.options('*', cors());
 
 app.use(express.json());
 app.use(cookieParser());
