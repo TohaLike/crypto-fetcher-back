@@ -47,7 +47,7 @@ io.use((socket, next) => {
 
 async function main() {
   try {
-    await mongoose.connect(process.env.DB_URL)
+    await mongoose.connect("mongodb+srv://redfly:0Cn8t0eachLhF12u@cfw.qa3it.mongodb.net/users")
     io.on("connection", (socket) => socketService.onConnection(io, socket));
   } catch (e) {
     console.log(e)
