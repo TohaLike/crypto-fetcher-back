@@ -17,7 +17,7 @@ const app = express();
 const server = app.listen(PORT, () => console.log(`Server has been started on port ${PORT}`))
 const io = new Server(server, {
   cors: {
-    origin: "https://crypto-fetcher-od5e8fcof-antons-projects-5f3e0d01.vercel.app",
+    origin: process.env.CLIENT_URL,
     methods: ["GET", "POST"]
   },
   connectionStateRecovery: {
@@ -30,7 +30,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
   credentials: true,
-  origin: "https://crypto-fetcher-od5e8fcof-antons-projects-5f3e0d01.vercel.app"
+  origin: process.env.CLIENT_URL
 }));
 app.use("/api", routers)
 app.use(errorMiddleware)
