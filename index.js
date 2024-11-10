@@ -25,7 +25,6 @@ const io = new Server(server, {
     skipMiddlewares: true
   }
 });
-app.options('*', cors());
 
 app.use(express.json());
 app.use(cookieParser());
@@ -48,7 +47,7 @@ io.use((socket, next) => {
 
 async function main() {
   try {
-    await mongoose.connect("mongodb+srv://redfly:0Cn8t0eachLhF12u@cfw.qa3it.mongodb.net/users")
+    await mongoose.connect(process.env.DB_URL)
     io.on("connection", (socket) => socketService.onConnection(io, socket));
   } catch (e) {
     console.log(e)
