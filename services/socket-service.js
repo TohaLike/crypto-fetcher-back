@@ -6,7 +6,7 @@ import { messageModel } from "../models/message-model.js"
 import { roomModel } from "../models/room-model.js"
 import { userModel } from "../models/user-model.js"
 import { tokenService } from "./token-service.js"
-import mongoose from 'mongoose'
+import mongoose, { mongo } from 'mongoose'
 
 class SocketService {
   onConnection(io, socket) {
@@ -69,21 +69,69 @@ class SocketService {
     if (!refreshToken) throw ApiError.UnauthorizedError()
 
     const userData = tokenService.validateRefreshToken(refreshToken)
-    const rooms = await roomModel.find({ usersId: userData.id });
-    const roomDto = rooms.map((e) => new RoomDto(e))
+    // const rooms = await roomModel.find({ usersId: userData.id });
+    // const roomDto = rooms.map((e) => new RoomDto(e))
+    // const roomsId = rooms.map((e) => e._id)
 
-    const latestMessage = await messageModel.aggregate([
-      { $match: { roomId: { $in: rooms.map(e => e._id) } } },
-      { $sort: { _id: -1, } },
+    const rooms = await roomModel.aggregate([
+      { $match: { usersId: new mongoose.Types.ObjectId(userData.id) } },
       {
-        $group: {
-          _id: { roomId: "$roomId" },
-          latestMessage: { $first: "$message" },
+        $project: {
+          roomId: "$_id",
+          otherParticipantId: {
+            $arrayElemAt: [
+              { $filter: { input: "$usersId", cond: { $ne: ["$$this", userData.id] } } },
+              0
+            ]
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "otherParticipantId",
+          foreignField: "_id",
+          pipeline: [{
+            $project: {
+              name: 1,
+            }
+          }],
+          as: "companion"
+        }
+      },
+      { $unwind: { path: "$companion" } },
+      {
+        $lookup:
+        {
+          from: "messages",
+          let: { roomId: "$_id" },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$roomId", "$$roomId"] } } },
+            { $sort: { createdAt: -1 } },
+            { $limit: 1 },
+            {
+              $project: {
+                message: 1,
+                createdAt: 1
+              }
+            }
+          ],
+          as: "lastMessage"
         },
       },
+      {
+        $unwind: { path: "$lastMessage" }
+      },
+      {
+        $project: {
+          roomId: "$_id",
+          companion: 1,
+          lastMessage: 1,
+        }
+      }
     ])
 
-    return { latestMessage: latestMessage, rooms: roomDto }
+    return rooms
   }
 
   async getAllMessages(refreshToken, id) {
