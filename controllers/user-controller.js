@@ -14,7 +14,7 @@ class UserContoller {
 
       const userData = await userService.registration(name, email, day, month, year, password);
 
-      res.cookie("refreshToken", userData.refreshToken, { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'none' })
+      res.cookie("refreshToken", userData.refreshToken, { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'none' })
       return res.json(userData)
     } catch (e) {
       next(e)
