@@ -14,6 +14,17 @@ dotenv.config()
 const PORT = process.env.PORT || 4000;
 const app = express();
 
+
+app.use(express.json());
+app.use(cookieParser());
+app.use(cors({
+  credentials: true,
+  methods: ['GET', 'POST'],
+  origin: "https://crypto-fetcher-puce.vercel.app"
+}));
+app.use("/api", routers)
+app.use(errorMiddleware)
+
 const server = app.listen(PORT, () => console.log(`Server has been started on port ${PORT}`))
 const io = new Server(server, {
   cors: {
@@ -25,16 +36,6 @@ const io = new Server(server, {
     skipMiddlewares: true
   }
 });
-
-app.use(express.json());
-app.use(cookieParser());
-app.use(cors({
-  credentials: true,
-  methods: ['GET', 'POST'],
-  origin: "https://crypto-fetcher-puce.vercel.app"
-}));
-app.use("/api", routers)
-app.use(errorMiddleware)
 
 io.use((socket, next) => {
   const token = socket.handshake.auth.token
