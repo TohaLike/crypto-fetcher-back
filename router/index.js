@@ -25,7 +25,7 @@ router.get("/messages/user", authMiddleware, socketController.getAllMessages)
 router.get("/rooms", authMiddleware, socketController.getAllRooms)
 router.get("/activate/:link", userControllers.activate)
 router.get("/refresh", userControllers.refresh)
-router.get("/users", authMiddleware, userControllers.getUsers)
+router.get("/users", userControllers.getUsers)
 
 
 export const routers = router
