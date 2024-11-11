@@ -17,7 +17,7 @@ const app = express();
 const server = app.listen(PORT, () => console.log(`Server has been started on port ${PORT}`))
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin: "https://crypto-fetcher-puce.vercel.app",
     methods: ["GET", "POST"]
   },
   connectionStateRecovery: {
@@ -31,7 +31,7 @@ app.use(cookieParser());
 app.use(cors({
   credentials: true,
   methods: ['GET', 'POST'],
-  origin: process.env.CLIENT_URL
+  origin: "https://crypto-fetcher-puce.vercel.app"
 }));
 app.use("/api", routers)
 app.use(errorMiddleware)
