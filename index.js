@@ -25,29 +25,29 @@ app.use(cors({
 app.use("/api", routers)
 app.use(errorMiddleware)
 
-const server = app.listen(PORT, () => console.log(`Server has been started on port ${PORT}`))
-const io = new Server(server, {
-  cors: {
-    origin: "https://crypto-fetcher-puce.vercel.app",
-    methods: ["GET", "POST"]
-  },
-  connectionStateRecovery: {
-    maxDisconnectionDuration: 2 * 60 * 1000,
-    skipMiddlewares: true
-  }
-});
-
-io.use((socket, next) => {
-  const token = socket.handshake.auth.token
-  if (token) {
-    next();
-  } else {
-    next(new Error("trash"));
-  }
-});
+// io.use((socket, next) => {
+//   const token = socket.handshake.auth.token
+//   if (token) {
+//     next();
+//   } else {
+//     next(new Error("trash"));
+//   }
+// });
 
 async function main() {
   try {
+    const server = app.listen(PORT, () => console.log(`Server has been started on port ${PORT}`))
+    const io = new Server(server, {
+      cors: {
+        origin: "https://crypto-fetcher-puce.vercel.app",
+        methods: ["GET", "POST"]
+      },
+      connectionStateRecovery: {
+        maxDisconnectionDuration: 2 * 60 * 1000,
+        skipMiddlewares: true
+      }
+    });
+
     await mongoose.connect(process.env.DB_URL)
     io.on("connection", (socket) => socketService.onConnection(io, socket));
   } catch (e) {
