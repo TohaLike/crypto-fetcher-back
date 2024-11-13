@@ -28,7 +28,6 @@ class SocketService {
     socket.on("join__room", async (roomId) => {
       const token = cookie.parse(socket.handshake.headers.cookie)
       const userData = tokenService.validateRefreshToken(token.refreshToken)
-
       const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, roomId] } })
 
       if (!roomData) return;
@@ -45,15 +44,13 @@ class SocketService {
 
       const userData = tokenService.validateRefreshToken(token.refreshToken)
 
-      const sender = userData.name
-
       const createdAt = new Date();
 
       const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, userId] } })
 
-      await messageModel.create({ sender, message, createdAt, userId: userData.id, roomId: roomData.id });
+      await messageModel.create({ sender: userData.name, message, createdAt, userId: userData.id, roomId: roomData.id });
 
-      io.to(roomData.id).emit("send__message", sender, message)
+      io.to(roomData.id).emit("send__message", userData.name, message)
     })
   }
 
