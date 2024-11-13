@@ -6,7 +6,6 @@ import { messageModel } from "../models/message-model.js"
 import { roomModel } from "../models/room-model.js"
 import { userModel } from "../models/user-model.js"
 import { tokenService } from "./token-service.js"
-import mongoose, { mongo } from 'mongoose'
 
 class SocketService {
   onConnection(io, socket) {
@@ -27,45 +26,57 @@ class SocketService {
 
   joinRoom(io, socket) {
     socket.on("join__room", async (roomId) => {
-      socket.join(roomId)
-      console.log("Joined room: ", roomId)
+      const token = cookie.parse(socket.handshake.headers.cookie)
+      const userData = tokenService.validateRefreshToken(token.refreshToken)
+
+      const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, roomId] } })
+
+      if (!roomData) return;
+
+      socket.join(roomData.id)
+
+      console.log("Joined room: ", roomData.id)
     })
   }
 
   sendMessage(io, socket) {
     socket.on("send__message", async (message, userId) => {
       const token = cookie.parse(socket.handshake.headers.cookie)
+
       const userData = tokenService.validateRefreshToken(token.refreshToken)
+
       const sender = userData.name
-      
+
       const createdAt = new Date();
 
-      const roomData = await roomModel.findOne({ usersId: [userData.id, userId] })
+      const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, userId] } })
 
       await messageModel.create({ sender, message, createdAt, userId: userData.id, roomId: roomData.id });
 
-      io.to(userId).emit("send__message", sender, message)
+      io.to(roomData.id).emit("send__message", sender, message)
     })
   }
 
-  async createRoom(refreshToken, userId) {
+  async createRoom(refreshToken, userId, lastMessage) {
     if (!refreshToken) throw ApiError.UnauthorizedError()
 
     const userData = tokenService.validateRefreshToken(refreshToken)
     const createdAt = new Date();
 
+    const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, userId] } })
 
-    const createRoom = await roomModel.create({
-      name: userData.name,
-      owner: userData.id,
-      createdAt,
-      usersId: [userData.id, userId],
-      // lastMessage: ""
-    });
+    if (!roomData) {
+      const createRoom = await roomModel.create({
+        name: userData.name,
+        owner: userData.id,
+        createdAt,
+        usersId: [userData.id, userId],
+      });
 
-    const roomDto = new RoomDto(createRoom);
+      const roomDto = new RoomDto(createRoom);
 
-    return { ...roomDto }
+      return { ...roomDto }
+    }
   }
 
   async getAllRooms(refreshToken) {
@@ -78,7 +89,7 @@ class SocketService {
           $ne: userData.id
         }
       }
-    }).populate({ path: "lastMessage", select: "message" })
+    }).populate({ path: "_id", populate: { path: 'message', select: '' } })
 
     const roomDto = rooms.map((e) => new RoomDto(e))
 
@@ -89,13 +100,20 @@ class SocketService {
     if (!refreshToken) throw ApiError.UnauthorizedError()
 
     const userData = tokenService.validateRefreshToken(refreshToken)
-    const roomData = await roomModel.findOne({ usersId: [userData.id, id] })
+
+    const roomData = await roomModel.findOne({ usersId: { $all: [id, userData.id] } }).populate({
+      path: "usersId", select: "name", match: {
+        _id: {
+          $ne: userData.id
+        }
+      }
+    })
 
     if (!roomData) throw ApiError.BadRequest("В не состоите в этой беседе!")
 
     const messages = await messageModel.find({ roomId: roomData.id });
 
-    return messages
+    return { messages, roomData }
   }
 }
 

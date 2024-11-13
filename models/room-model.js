@@ -5,7 +5,7 @@ const RoomSchema = new Schema({
   owner: { type: Schema.Types.ObjectId, ref: "User" },
   createdAt: { type: Date, required: true },
   usersId: { type: [Schema.Types.ObjectId], default: [], ref: "User" },
-  lastMessage: { type: Schema.Types.ObjectId, default: "", ref: "Message" }
+  lastMessage: { type: Schema.Types.ObjectId, default: null, ref: "Message" }
 })
 
 export const roomModel = model("Room", RoomSchema)
