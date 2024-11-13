@@ -33,17 +33,18 @@ class SocketService {
   }
 
   sendMessage(io, socket) {
-    socket.on("send__message", async (message, roomId) => {
+    socket.on("send__message", async (message, userId) => {
       const token = cookie.parse(socket.handshake.headers.cookie)
       const userData = tokenService.validateRefreshToken(token.refreshToken)
-      const userId = userData.id
       const sender = userData.name
-
+      
       const createdAt = new Date();
 
-      await messageModel.create({ sender, message, createdAt, userId, roomId });
+      const roomData = await roomModel.findOne({ usersId: [userData.id, userId] })
 
-      io.to(roomId).emit("send__message", sender, message)
+      await messageModel.create({ sender, message, createdAt, userId: userData.id, roomId: roomData.id });
+
+      io.to(userId).emit("send__message", sender, message)
     })
   }
 
@@ -53,11 +54,13 @@ class SocketService {
     const userData = tokenService.validateRefreshToken(refreshToken)
     const createdAt = new Date();
 
+
     const createRoom = await roomModel.create({
       name: userData.name,
       owner: userData.id,
       createdAt,
-      usersId: [userData.id, userId]
+      usersId: [userData.id, userId],
+      // lastMessage: ""
     });
 
     const roomDto = new RoomDto(createRoom);
@@ -67,81 +70,28 @@ class SocketService {
 
   async getAllRooms(refreshToken) {
     if (!refreshToken) throw ApiError.UnauthorizedError()
-
     const userData = tokenService.validateRefreshToken(refreshToken)
-    // const rooms = await roomModel.find({ usersId: userData.id });
-    // const roomDto = rooms.map((e) => new RoomDto(e))
-    // const roomsId = rooms.map((e) => e._id)
 
-    const rooms = await roomModel.aggregate([
-      { $match: { usersId: new mongoose.Types.ObjectId(userData.id) } },
-      {
-        $project: {
-          roomId: "$_id",
-          otherParticipantId: {
-            $arrayElemAt: [
-              { $filter: { input: "$usersId", cond: { $ne: ["$$this", userData.id] } } },
-              0
-            ]
-          }
-        }
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "otherParticipantId",
-          foreignField: "_id",
-          pipeline: [{
-            $project: {
-              name: 1,
-            }
-          }],
-          as: "companion"
-        }
-      },
-      { $unwind: { path: "$companion" } },
-      {
-        $lookup:
-        {
-          from: "messages",
-          let: { roomId: "$_id" },
-          pipeline: [
-            { $match: { $expr: { $eq: ["$roomId", "$$roomId"] } } },
-            { $sort: { createdAt: -1 } },
-            { $limit: 1 },
-            {
-              $project: {
-                message: 1,
-                createdAt: 1
-              }
-            }
-          ],
-          as: "lastMessage"
-        },
-      },
-      {
-        $unwind: { path: "$lastMessage" }
-      },
-      {
-        $project: {
-          roomId: "$_id",
-          companion: 1,
-          lastMessage: 1,
+    const rooms = await roomModel.find({ usersId: userData.id }).populate({
+      path: "usersId", select: "name", match: {
+        _id: {
+          $ne: userData.id
         }
       }
-    ])
+    }).populate({ path: "lastMessage", select: "message" })
 
-    return rooms
+    const roomDto = rooms.map((e) => new RoomDto(e))
+
+    return roomDto
   }
 
   async getAllMessages(refreshToken, id) {
     if (!refreshToken) throw ApiError.UnauthorizedError()
 
     const userData = tokenService.validateRefreshToken(refreshToken)
-    const roomData = await roomModel.findOne({ _id: id })
-    const findUser = roomData?.usersId?.some((e) => e.toString() === userData.id)
+    const roomData = await roomModel.findOne({ usersId: [userData.id, id] })
 
-    if (!findUser) throw ApiError.BadRequest("В не состоите в этой беседе!")
+    if (!roomData) throw ApiError.BadRequest("В не состоите в этой беседе!")
 
     const messages = await messageModel.find({ roomId: roomData.id });
 

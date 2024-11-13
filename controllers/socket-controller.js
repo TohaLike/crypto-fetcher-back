@@ -19,6 +19,7 @@ class SocketController {
     try {
       const { refreshToken } = req.cookies
       const { userId } = req.body
+      
       const roomData = await socketService.createRoom(refreshToken, userId)
       return res.json(roomData)
     } catch (e) {

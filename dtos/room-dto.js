@@ -4,6 +4,7 @@ export default class RoomDto {
   id;
   createdAt;
   usersId;
+  lastMessage;
 
   constructor(model) {
     this.name = model.name
@@ -11,5 +12,6 @@ export default class RoomDto {
     this.id = model._id
     this.createdAt = model.createdAt
     this.usersId = model.usersId
+    this.lastMessage = model.lastMessage
   }
 }
