@@ -70,7 +70,9 @@ class SocketService {
         usersId: [userData.id, userId],
       });
 
-      await lastMessageModel.create({ roomId: createRoom.id, messageText: lastMessage, createdAt, sender: userData.id })
+      const messageId = await lastMessageModel.create({ roomId: createRoom.id, messageText: lastMessage, createdAt, sender: userData.id })
+
+      await createRoom.updateOne({ lastMessage: messageId.id })
 
       const roomDto = new RoomDto(createRoom);
 
@@ -88,23 +90,7 @@ class SocketService {
           $ne: userData.id
         }
       }
-    }).populate("_id", "message")
-
-    // const lastMessages = await lastMessageModel.find()
-    // .populate({
-    //   path: "roomId", // Подтягиваем данные о комнате
-    //   select: "name usersId", // Выбираем только нужные поля, например, имя и ID пользователей
-    //   populate: { 
-    //     path: "usersId", 
-    //     select: "name" // Вложенная популяция пользователей для имени
-    //   }
-    // })
-    // .populate({
-    //   path: "sender", // Подтягиваем данные о пользователе, отправившем сообщение
-    //   select: "name profilePicture" // Включаем нужные поля, например, имя и аватар
-    // });
-
-    // console.log(lastMessages)
+    }).populate("lastMessage", "messageText createdAt")
 
     const roomDto = rooms.map((e) => new RoomDto(e))
 
