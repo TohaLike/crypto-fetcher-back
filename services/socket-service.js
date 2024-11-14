@@ -6,6 +6,7 @@ import { messageModel } from "../models/message-model.js"
 import { roomModel } from "../models/room-model.js"
 import { userModel } from "../models/user-model.js"
 import { tokenService } from "./token-service.js"
+import { lastMessageModel } from '../models/last-message-model.js'
 
 class SocketService {
   onConnection(io, socket) {
@@ -41,14 +42,14 @@ class SocketService {
   sendMessage(io, socket) {
     socket.on("send__message", async (message, userId) => {
       const token = cookie.parse(socket.handshake.headers.cookie)
-
       const userData = tokenService.validateRefreshToken(token.refreshToken)
-
       const createdAt = new Date();
 
       const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, userId] } })
 
       await messageModel.create({ sender: userData.name, message, createdAt, userId: userData.id, roomId: roomData.id });
+
+      await lastMessageModel.findOneAndUpdate({ roomId: roomData.id, }, { messageText: message, createdAt })
 
       io.to(roomData.id).emit("send__message", userData.name, message)
     })
@@ -59,7 +60,6 @@ class SocketService {
 
     const userData = tokenService.validateRefreshToken(refreshToken)
     const createdAt = new Date();
-
     const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, userId] } })
 
     if (!roomData) {
@@ -69,6 +69,8 @@ class SocketService {
         createdAt,
         usersId: [userData.id, userId],
       });
+
+      await lastMessageModel.create({ roomId: createRoom.id, messageText: lastMessage, createdAt, sender: userData.id })
 
       const roomDto = new RoomDto(createRoom);
 
@@ -86,7 +88,23 @@ class SocketService {
           $ne: userData.id
         }
       }
-    }).populate({ path: "_id", populate: { path: 'message', select: '' } })
+    }).populate("_id", "message")
+
+    // const lastMessages = await lastMessageModel.find()
+    // .populate({
+    //   path: "roomId", // Подтягиваем данные о комнате
+    //   select: "name usersId", // Выбираем только нужные поля, например, имя и ID пользователей
+    //   populate: { 
+    //     path: "usersId", 
+    //     select: "name" // Вложенная популяция пользователей для имени
+    //   }
+    // })
+    // .populate({
+    //   path: "sender", // Подтягиваем данные о пользователе, отправившем сообщение
+    //   select: "name profilePicture" // Включаем нужные поля, например, имя и аватар
+    // });
+
+    // console.log(lastMessages)
 
     const roomDto = rooms.map((e) => new RoomDto(e))
 
@@ -97,7 +115,6 @@ class SocketService {
     if (!refreshToken) throw ApiError.UnauthorizedError()
 
     const userData = tokenService.validateRefreshToken(refreshToken)
-
     const roomData = await roomModel.findOne({ usersId: { $all: [id, userData.id] } }).populate({
       path: "usersId", select: "name", match: {
         _id: {

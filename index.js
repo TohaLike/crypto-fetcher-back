@@ -17,7 +17,7 @@ const app = express();
 const server = app.listen(PORT, () => console.log(`Server has been started on port ${PORT}`))
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin: "https://crypto-fetcher.onrender.com",
     methods: ["GET", "POST"]
   },
   connectionStateRecovery: {
@@ -31,7 +31,7 @@ app.use(cookieParser());
 app.use(cors({
   credentials: true,
   methods: ['GET', 'POST'],
-  origin: process.env.CLIENT_URL,
+  origin: "https://crypto-fetcher.onrender.com",
 }));
 app.use("/api", routers)
 app.use(errorMiddleware)
@@ -47,7 +47,7 @@ io.use((socket, next) => {
 
 async function main() {
   try {
-    await mongoose.connect(process.env.DB_URL)
+    await mongoose.connect("mongodb+srv://redfly:0Cn8t0eachLhF12u@cfw.qa3it.mongodb.net/users")
     io.on("connection", (socket) => socketService.onConnection(io, socket));
   } catch (e) {
     console.log(e)
