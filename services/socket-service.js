@@ -49,7 +49,12 @@ class SocketService {
 
       await messageModel.create({ sender: userData.name, message, createdAt, userId: userData.id, roomId: roomData.id });
 
-      await lastMessageModel.findOneAndUpdate({ roomId: roomData.id, }, { messageText: message, createdAt })
+      const updateMessage = await lastMessageModel.findOneAndUpdate({ roomId: roomData.id, }, { messageText: message, createdAt })
+
+      if (!updateMessage) {
+        const messageId = await lastMessageModel.create({ roomId: roomData.id, messageText: message, createdAt, sender: userData.id })
+        await roomData.updateOne({ lastMessage: messageId.id })
+      }
 
       io.to(roomData.id).emit("send__message", userData.name, message)
     })
