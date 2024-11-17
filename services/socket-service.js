@@ -12,7 +12,11 @@ class SocketService {
   onConnection(io, socket) {
     console.log("user connected: ", socket.id)
 
+    this.joinRooms(io, socket)
+
     this.joinRoom(io, socket)
+
+    this.typing(io, socket)
 
     socket.on("leave__room", (roomId) => {
       socket.leave(roomId)
@@ -22,6 +26,28 @@ class SocketService {
     this.sendMessage(io, socket)
 
     socket.on("disconnect", () => console.log("user disconnected: ", socket.id))
+  }
+
+  typing(io, socket) {
+    socket.on("typing", (data) => {
+      if (data.typing) {
+        io.emit('display', data)
+      } else {
+        io.emit('display', data)
+      }
+    })
+  }
+
+  joinRooms(io, socket) {
+    socket.on("join__rooms", () => {
+      const token = cookie.parse(socket.handshake.headers.cookie)
+      const userData = tokenService.validateRefreshToken(token.refreshToken)
+
+      if (!userData) return;
+
+      socket.join(userData.id)
+      console.log("joined", userData.id)
+    })
   }
 
 
@@ -45,7 +71,13 @@ class SocketService {
       const userData = tokenService.validateRefreshToken(token.refreshToken)
       const createdAt = new Date();
 
-      const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, userId] } })
+      const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, userId] } }).populate({
+        path: "usersId", select: "name", match: {
+          _id: {
+            $ne: userId
+          }
+        }
+      })
 
       await messageModel.create({ sender: userData.name, message, createdAt, userId: userData.id, roomId: roomData.id });
 
@@ -56,7 +88,9 @@ class SocketService {
         await roomData.updateOne({ lastMessage: messageId.id })
       }
 
-      io.to(roomData.id).emit("send__message", userData.name, message)
+      io.to(roomData.id).emit("send__message", userData.name, message, roomData.id)
+
+      io.to(userId).emit("room__message", userData.name, message, roomData.id, createdAt, roomData.usersId)
     })
   }
 
