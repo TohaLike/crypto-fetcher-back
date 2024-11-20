@@ -84,7 +84,10 @@ class UserService {
 
   async getProfile(params) {
     const profile = await userModel.findOne({ _id: params.user })
-    return profile
+
+    const userDto = new UserDto(profile)
+
+    return userDto
   }
 
   async getAllUsers() {

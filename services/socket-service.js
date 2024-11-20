@@ -18,6 +18,8 @@ class SocketService {
 
     this.typing(io, socket)
 
+    this.stopTyping(io, socket)
+
     socket.on("leave__room", (roomId) => {
       socket.leave(roomId)
       console.log("Left room: ", roomId)
@@ -29,12 +31,28 @@ class SocketService {
   }
 
   typing(io, socket) {
-    socket.on("typing", (data) => {
-      if (data.typing) {
-        io.emit('display', data)
-      } else {
-        io.emit('display', data)
-      }
+    socket.on("typing", async (roomId) => {
+      const token = cookie.parse(socket.handshake.headers.cookie)
+      const userData = tokenService.validateRefreshToken(token.refreshToken)
+      const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, roomId] } })
+
+      if (!roomData) return
+
+      socket.broadcast.to(roomData.id).emit("typing", true)
+    })
+  }
+
+  stopTyping(io, socket) {
+    socket.on("stopped__typing", async (roomId) => {
+      const token = cookie.parse(socket.handshake.headers.cookie)
+      const userData = tokenService.validateRefreshToken(token.refreshToken)
+      const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, roomId] } })
+
+      if (!roomData) return
+      
+      console.log("Не пишет")
+
+      socket.broadcast.to(roomData.id).emit("stopped__typing", false)
     })
   }
 
@@ -88,7 +106,7 @@ class SocketService {
         await roomData.updateOne({ lastMessage: messageId.id })
       }
 
-      io.to(roomData.id).emit("send__message", userData.name, message, roomData.id)
+      io.to(roomData.id).emit("send__message", userData.name, message, userData.id, createdAt)
 
       io.to(userId).emit("room__message", userData.name, message, roomData.id, createdAt, roomData.usersId)
     })
@@ -152,7 +170,7 @@ class SocketService {
 
     const messages = await messageModel.find({ roomId: roomData.id });
 
-    return { messages, roomData }
+    return messages
   }
 }
 
