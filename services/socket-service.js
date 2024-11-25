@@ -7,6 +7,7 @@ import { roomModel } from "../models/room-model.js"
 import { userModel } from "../models/user-model.js"
 import { tokenService } from "./token-service.js"
 import { lastMessageModel } from '../models/last-message-model.js'
+import RoomDataDto from '../dtos/room-data-dto.js'
 
 class SocketService {
   onConnection(io, socket) {
@@ -38,7 +39,9 @@ class SocketService {
 
       if (!roomData) return
 
-      socket.broadcast.to(roomData.id).emit("typing", true)
+      console.log("Gишет")
+
+      socket.broadcast.to(roomData.id).emit("typing", { typing: true })
     })
   }
 
@@ -49,10 +52,10 @@ class SocketService {
       const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, roomId] } })
 
       if (!roomData) return
-      
+
       console.log("Не пишет")
 
-      socket.broadcast.to(roomData.id).emit("stopped__typing", false)
+      socket.broadcast.to(roomData.id).emit("stopped__typing", { typing: false })
     })
   }
 
@@ -97,18 +100,19 @@ class SocketService {
         }
       })
 
-      await messageModel.create({ sender: userData.name, message, createdAt, userId: userData.id, roomId: roomData.id });
+      if (roomData) {
+        await messageModel.create({ sender: userData.name, message, createdAt, userId: userData.id, roomId: roomData.id });
+        const updateMessage = await lastMessageModel.findOneAndUpdate({ roomId: roomData.id, }, { messageText: message, createdAt })
 
-      const updateMessage = await lastMessageModel.findOneAndUpdate({ roomId: roomData.id, }, { messageText: message, createdAt })
+        if (!updateMessage) {
+          const messageId = await lastMessageModel.create({ roomId: roomData.id, messageText: message, createdAt, sender: userData.id })
+          await roomData.updateOne({ lastMessage: messageId.id })
+        }
 
-      if (!updateMessage) {
-        const messageId = await lastMessageModel.create({ roomId: roomData.id, messageText: message, createdAt, sender: userData.id })
-        await roomData.updateOne({ lastMessage: messageId.id })
+        io.to(roomData.id).emit("send__message", userData.name, message, userData.id, createdAt)
+
+        io.to(userId).emit("room__message", userData.name, message, roomData.id, createdAt, roomData.usersId)
       }
-
-      io.to(roomData.id).emit("send__message", userData.name, message, userData.id, createdAt)
-
-      io.to(userId).emit("room__message", userData.name, message, roomData.id, createdAt, roomData.usersId)
     })
   }
 
@@ -134,8 +138,22 @@ class SocketService {
       const roomDto = new RoomDto(createRoom);
 
       return { ...roomDto }
+    } else {
+      throw ApiError.BadRequest("Вы уже состоите в данной беседе!")
     }
   }
+
+  async getRoom(refreshToken, userId) {
+    if (!refreshToken) throw ApiError.UnauthorizedError()
+    const userData = tokenService.validateRefreshToken(refreshToken)
+
+    const getRoom = await roomModel.findOne({ usersId: { $all: [userData.id, userId] } })
+
+    const roomDto = new RoomDataDto(getRoom)
+
+    return roomDto
+  }
+
 
   async getAllRooms(refreshToken) {
     if (!refreshToken) throw ApiError.UnauthorizedError()
@@ -154,7 +172,7 @@ class SocketService {
     return roomDto
   }
 
-  async getAllMessages(refreshToken, id) {
+  async getAllMessages(refreshToken, id, page, limit) {
     if (!refreshToken) throw ApiError.UnauthorizedError()
 
     const userData = tokenService.validateRefreshToken(refreshToken)
@@ -166,11 +184,18 @@ class SocketService {
       }
     })
 
-    if (!roomData) throw ApiError.BadRequest("В не состоите в этой беседе!")
+    if (!roomData) {
+      return
+    } else {
+      const queryPage = parseInt(page) || 1;
+      const queryLimit = parseInt(limit) || 10;
 
-    const messages = await messageModel.find({ roomId: roomData.id });
+      const startIndex = (queryPage - 1) * queryLimit;
 
-    return messages
+      const messages = await messageModel.find({ roomId: roomData.id }).sort({ createdAt: -1 }).skip(startIndex).limit(queryLimit);
+
+      return messages
+    }
   }
 }
 

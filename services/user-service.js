@@ -5,6 +5,7 @@ import { tokenService } from "./token-service.js"
 import bcrypt from "bcrypt"
 import UserDto from "../dtos/user-dto.js"
 import ApiError from "../exceptions/api-error.js";
+import { roomModel } from "../models/room-model.js";
 
 class UserService {
   async registration(name, email, day, month, year, password) {
@@ -82,7 +83,14 @@ class UserService {
     return { ...tokens, user: userDto }
   }
 
-  async getProfile(params) {
+  async getProfile(params, refreshToken) {
+    const userData = tokenService.validateRefreshToken(refreshToken)
+    const tokenFromDb = await tokenService.findToken(refreshToken)
+
+    if (!userData || !tokenFromDb) {
+      throw ApiError.UnauthorizedError()
+    }
+
     const profile = await userModel.findOne({ _id: params.user })
 
     const userDto = new UserDto(profile)

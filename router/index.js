@@ -16,10 +16,11 @@ router.post("/registration",
   userControllers.registration
 )
 
-router.post("/room", socketController.createRoom)
+router.post("/room", body("lastMessage").isLength({ min: 1 }), socketController.createRoom)
 router.post("/login", userControllers.login)
 router.post("/logout", userControllers.logout)
 
+router.get("/room/user", authMiddleware, socketController.getRoom)
 router.get("/profile/:user", authMiddleware, userControllers.getProfile)
 router.get("/messages/user", authMiddleware, socketController.getAllMessages)
 router.get("/rooms", authMiddleware, socketController.getAllRooms)

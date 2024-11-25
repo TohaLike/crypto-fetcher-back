@@ -7,7 +7,9 @@ class SocketController {
   async getAllMessages(req, res, next) {
     try {
       const { refreshToken } = req.cookies
-      const messages = await socketService.getAllMessages(refreshToken, req.query.res)
+      const { page, limit } = req.query
+
+      const messages = await socketService.getAllMessages(refreshToken, req.query.res, page, limit)
 
       return res.json(messages)
     } catch (e) {
@@ -17,11 +19,28 @@ class SocketController {
 
   async createRoom(req, res, next) {
     try {
+      const errors = validationResult(req);
+
+      if (!errors.isEmpty()) {
+        return next(ApiError.BadRequest("Ошибка при валидации", errors.array()))
+      }
+
       const { refreshToken } = req.cookies
       const { userId, lastMessage } = req.body
 
       const roomData = await socketService.createRoom(refreshToken, userId, lastMessage)
       return res.json(roomData)
+    } catch (e) {
+      next(e)
+    }
+  }
+  async getRoom(req, res, next) {
+    try {
+      const { refreshToken } = req.cookies
+      const { userId } = req.query
+
+      const rooms = await socketService.getRoom(refreshToken, req.query.res)
+      return res.json(rooms)
     } catch (e) {
       next(e)
     }
