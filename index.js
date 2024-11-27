@@ -7,6 +7,9 @@ import { routers } from "./router/index.js"
 import { errorMiddleware } from "./middlewares/error-middleware.js";
 import { Server } from "socket.io";
 import { socketService } from "./services/socket-service.js";
+import { availableParallelism } from 'node:os';
+import cluster from 'node:cluster';
+import { createAdapter, setupPrimary } from '@socket.io/cluster-adapter';
 
 
 dotenv.config()
@@ -17,7 +20,7 @@ const app = express();
 const server = app.listen(PORT, () => console.log(`Server has been started on port ${PORT}`))
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin: "https://crypto-fetcher.onrender.com",
     methods: ["GET", "POST"]
   },
   connectionStateRecovery: {
@@ -31,7 +34,7 @@ app.use(cookieParser());
 app.use(cors({
   credentials: true,
   methods: ['GET', 'POST'],
-  origin: process.env.CLIENT_URL,
+  origin: "https://crypto-fetcher.onrender.com",
 }));
 app.use("/api", routers)
 app.use(errorMiddleware)

@@ -37,7 +37,6 @@ class SocketController {
   async getRoom(req, res, next) {
     try {
       const { refreshToken } = req.cookies
-      const { userId } = req.query
 
       const rooms = await socketService.getRoom(refreshToken, req.query.res)
       return res.json(rooms)

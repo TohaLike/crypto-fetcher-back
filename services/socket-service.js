@@ -8,6 +8,7 @@ import { userModel } from "../models/user-model.js"
 import { tokenService } from "./token-service.js"
 import { lastMessageModel } from '../models/last-message-model.js'
 import RoomDataDto from '../dtos/room-data-dto.js'
+import mongoose from 'mongoose'
 
 class SocketService {
   onConnection(io, socket) {
@@ -33,6 +34,8 @@ class SocketService {
 
   typing(io, socket) {
     socket.on("typing", async (roomId) => {
+      if (!mongoose.isObjectIdOrHexString(roomId)) throw ApiError.InvalidId()
+
       const token = cookie.parse(socket.handshake.headers.cookie)
       const userData = tokenService.validateRefreshToken(token.refreshToken)
       const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, roomId] } })
@@ -47,6 +50,8 @@ class SocketService {
 
   stopTyping(io, socket) {
     socket.on("stopped__typing", async (roomId) => {
+      if (!mongoose.isObjectIdOrHexString(roomId)) throw ApiError.InvalidId()
+
       const token = cookie.parse(socket.handshake.headers.cookie)
       const userData = tokenService.validateRefreshToken(token.refreshToken)
       const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, roomId] } })
@@ -74,6 +79,8 @@ class SocketService {
 
   joinRoom(io, socket) {
     socket.on("join__room", async (roomId) => {
+      if (!mongoose.isObjectIdOrHexString(roomId)) return
+
       const token = cookie.parse(socket.handshake.headers.cookie)
       const userData = tokenService.validateRefreshToken(token.refreshToken)
       const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, roomId] } })
@@ -88,6 +95,8 @@ class SocketService {
 
   sendMessage(io, socket) {
     socket.on("send__message", async (message, userId) => {
+      if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
+
       const token = cookie.parse(socket.handshake.headers.cookie)
       const userData = tokenService.validateRefreshToken(token.refreshToken)
       const createdAt = new Date();
@@ -118,6 +127,7 @@ class SocketService {
 
   async createRoom(refreshToken, userId, lastMessage) {
     if (!refreshToken) throw ApiError.UnauthorizedError()
+    if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
 
     const userData = tokenService.validateRefreshToken(refreshToken)
     const createdAt = new Date();
@@ -145,9 +155,13 @@ class SocketService {
 
   async getRoom(refreshToken, userId) {
     if (!refreshToken) throw ApiError.UnauthorizedError()
+    if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
+
     const userData = tokenService.validateRefreshToken(refreshToken)
 
     const getRoom = await roomModel.findOne({ usersId: { $all: [userData.id, userId] } })
+
+    if (!getRoom) return
 
     const roomDto = new RoomDataDto(getRoom)
 
@@ -174,8 +188,10 @@ class SocketService {
 
   async getAllMessages(refreshToken, id, page, limit) {
     if (!refreshToken) throw ApiError.UnauthorizedError()
+    if (!mongoose.isObjectIdOrHexString(id)) return
 
     const userData = tokenService.validateRefreshToken(refreshToken)
+
     const roomData = await roomModel.findOne({ usersId: { $all: [id, userData.id] } }).populate({
       path: "usersId", select: "name", match: {
         _id: {
@@ -184,18 +200,16 @@ class SocketService {
       }
     })
 
-    if (!roomData) {
-      return
-    } else {
-      const queryPage = parseInt(page) || 1;
-      const queryLimit = parseInt(limit) || 10;
+    if (!roomData) return
 
-      const startIndex = (queryPage - 1) * queryLimit;
+    const queryPage = parseInt(page) || 1;
+    const queryLimit = parseInt(limit) || 10;
 
-      const messages = await messageModel.find({ roomId: roomData.id }).sort({ createdAt: -1 }).skip(startIndex).limit(queryLimit);
+    const startIndex = (queryPage - 1) * queryLimit;
 
-      return messages
-    }
+    const messages = await messageModel.find({ roomId: roomData.id }).sort({ createdAt: -1 }).skip(startIndex).limit(queryLimit);
+
+    return messages
   }
 }
 

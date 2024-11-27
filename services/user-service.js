@@ -6,6 +6,7 @@ import bcrypt from "bcrypt"
 import UserDto from "../dtos/user-dto.js"
 import ApiError from "../exceptions/api-error.js";
 import { roomModel } from "../models/room-model.js";
+import mongoose from "mongoose";
 
 class UserService {
   async registration(name, email, day, month, year, password) {
@@ -91,7 +92,13 @@ class UserService {
       throw ApiError.UnauthorizedError()
     }
 
+    if (!mongoose.Types.ObjectId.isValid(params.user)) throw ApiError.InvalidId()
+
     const profile = await userModel.findOne({ _id: params.user })
+
+    if (!profile || !userData) {
+      throw ApiError.BadRequest("Пользователь не найден")  
+    }
 
     const userDto = new UserDto(profile)
 
