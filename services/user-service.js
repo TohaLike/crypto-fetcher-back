@@ -49,9 +49,11 @@ class UserService {
       throw ApiError.BadRequest("Пользователь с таким email не найден")
     }
     const isPassEquals = await bcrypt.compare(password, user.password)
+
     if (!isPassEquals) {
       throw ApiError.BadRequest("Неверный пароль")
     }
+    
     const userDto = new UserDto(user)
     const tokens = tokenService.generateTokens({ ...userDto })
 
