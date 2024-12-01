@@ -53,7 +53,7 @@ class UserService {
     if (!isPassEquals) {
       throw ApiError.BadRequest("Неверный пароль")
     }
-    
+
     const userDto = new UserDto(user)
     const tokens = tokenService.generateTokens({ ...userDto })
 
@@ -87,6 +87,8 @@ class UserService {
   }
 
   async getProfile(params, refreshToken) {
+    if (!mongoose.isObjectIdOrHexString(params.user)) throw ApiError.InvalidId()
+
     const userData = tokenService.validateRefreshToken(refreshToken)
     const tokenFromDb = await tokenService.findToken(refreshToken)
 
@@ -94,12 +96,10 @@ class UserService {
       throw ApiError.UnauthorizedError()
     }
 
-    if (!mongoose.Types.ObjectId.isValid(params.user)) throw ApiError.InvalidId()
-
     const profile = await userModel.findOne({ _id: params.user })
 
     if (!profile || !userData) {
-      throw ApiError.BadRequest("Пользователь не найден")  
+      throw ApiError.BadRequest("Пользователь не найден")
     }
 
     const userDto = new UserDto(profile)

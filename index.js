@@ -17,18 +17,6 @@ dotenv.config()
 const PORT = process.env.PORT || 4000;
 const app = express();
 
-const server = app.listen(PORT, () => console.log(`Server has been started on port ${PORT}`))
-const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL,
-    methods: ["GET", "POST"]
-  },
-  connectionStateRecovery: {
-    maxDisconnectionDuration: 2 * 60 * 1000,
-    skipMiddlewares: true
-  }
-});
-
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
@@ -38,6 +26,22 @@ app.use(cors({
 }));
 app.use("/api", routers)
 app.use(errorMiddleware)
+
+
+const server = app.listen(PORT, () => console.log(`Server has been started on port ${PORT}`))
+
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_URL,
+    methods: ["GET", "POST"]
+  },
+  connectionStateRecovery: {
+    maxDisconnectionDuration: 2 * 60 * 1000,
+    skipMiddlewares: true
+  },
+  pingTimeout: 60000,
+  pingInterval: 25000,
+});
 
 io.use((socket, next) => {
   const token = socket.handshake.auth.token
@@ -51,7 +55,10 @@ io.use((socket, next) => {
 async function main() {
   try {
     await mongoose.connect(process.env.DB_URL)
-    io.on("connection", (socket) => socketService.onConnection(io, socket));
+    io.on("connection", (socket) => {
+      console.log(socket.connected)
+      socketService.onConnection(io, socket)
+    });
   } catch (e) {
     console.log(e)
   }

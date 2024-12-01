@@ -22,14 +22,36 @@ class SocketService {
 
     this.stopTyping(io, socket)
 
+    socket.on("resubscribe", (data) => {
+      // Логика восстановления подписок
+      console.log(`User resubscribed: ${data.userId}`);
+    });
+
     socket.on("leave__room", (roomId) => {
       socket.leave(roomId)
       console.log("Left room: ", roomId)
     })
 
+    socket.on("connect_error", () => {
+      socket.auth.token = "abcd";
+      socket.connect();
+    });
+
+
     this.sendMessage(io, socket)
 
-    socket.on("disconnect", () => console.log("user disconnected: ", socket.id))
+
+    // socket.on("disconnect", (reason) => {
+    //   console.log(reason)
+    //   if (reason === "io server disconnect") {
+    //     // the disconnection was initiated by the server, you need to reconnect manually
+
+    //     socket.connect();
+    //   }
+    //   // else the socket will automatically try to reconnect
+    // });
+
+    // socket.on("disconnect", () => console.log("user disconnected: ", socket.id))
   }
 
   typing(io, socket) {
@@ -66,7 +88,12 @@ class SocketService {
 
   joinRooms(io, socket) {
     socket.on("join__rooms", () => {
-      const token = cookie.parse(socket.handshake.headers.cookie)
+      const getCookie = socket.handshake.headers.cookie
+
+      if (!getCookie) return
+
+      const token = cookie.parse(getCookie)
+
       const userData = tokenService.validateRefreshToken(token.refreshToken)
 
       if (!userData) return;
@@ -126,8 +153,9 @@ class SocketService {
   }
 
   async createRoom(refreshToken, userId, lastMessage) {
-    if (!refreshToken) throw ApiError.UnauthorizedError()
     if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
+
+    if (!refreshToken) throw ApiError.UnauthorizedError()
 
     const userData = tokenService.validateRefreshToken(refreshToken)
     const createdAt = new Date();
@@ -154,8 +182,9 @@ class SocketService {
   }
 
   async getRoom(refreshToken, userId) {
-    if (!refreshToken) throw ApiError.UnauthorizedError()
     if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
+
+    if (!refreshToken) throw ApiError.UnauthorizedError()
 
     const userData = tokenService.validateRefreshToken(refreshToken)
 
@@ -170,8 +199,10 @@ class SocketService {
 
 
   async getAllRooms(refreshToken) {
-    if (!refreshToken) throw ApiError.UnauthorizedError()
     const userData = tokenService.validateRefreshToken(refreshToken)
+    const tokenFromDb = await tokenService.findToken(refreshToken)
+
+    if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
 
     const rooms = await roomModel.find({ usersId: userData.id }).populate({
       path: "usersId", select: "name", match: {
@@ -181,15 +212,17 @@ class SocketService {
       }
     }).populate("lastMessage", "messageText createdAt")
 
+
+    if (!rooms) return
+
     const roomDto = rooms.map((e) => new RoomDto(e))
 
     return roomDto
   }
 
   async getAllMessages(refreshToken, id, page, limit) {
-    if (!refreshToken) throw ApiError.UnauthorizedError()
     if (!mongoose.isObjectIdOrHexString(id)) return
-
+    if (!refreshToken) throw ApiError.UnauthorizedError()
     const userData = tokenService.validateRefreshToken(refreshToken)
 
     const roomData = await roomModel.findOne({ usersId: { $all: [id, userData.id] } }).populate({
