@@ -107,9 +107,17 @@ class UserService {
     return userDto
   }
 
-  async getAllUsers() {
+  async getAllUsers(refreshToken) {
+    const userData = tokenService.validateRefreshToken(refreshToken);
+    const tokenFromDb = await tokenService.findToken(refreshToken)
+
+    if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
+
     const users = await userModel.find()
-    return users
+
+    const usersDto = users.map((e) => new UserDto(e))
+
+    return usersDto
   }
 }
 

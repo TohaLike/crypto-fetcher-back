@@ -83,8 +83,6 @@ class SocketService {
 
       if (!roomData) return
 
-      // console.log("Gишет")
-
       socket.broadcast.to(roomData.id).emit("typing", { typing: true })
     })
   }
@@ -167,8 +165,6 @@ class SocketService {
         io.to(userId).emit("room__message", userData.name, message, roomData.id, createdAt, roomData.usersId)
 
         this.messageStore.push({ userId: userId, message: message })
-
-        // console.log(this.messageStore)
       }
     })
   }

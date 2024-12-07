@@ -28,7 +28,7 @@ class UserContoller {
       const { email, password } = req.body;
       const userData = await userService.login(email, password)
       res.cookie("refreshToken", userData.refreshToken, {
-        maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true, 
+        maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true,
       })
       return res.json(userData)
     } catch (e) {
@@ -82,7 +82,8 @@ class UserContoller {
 
   async getUsers(req, res, next) {
     try {
-      const users = await userService.getAllUsers();
+      const { refreshToken } = req.cookies
+      const users = await userService.getAllUsers(refreshToken);
       return res.json(users)
     } catch (e) {
       next(e)
