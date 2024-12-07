@@ -10,9 +10,27 @@ import { lastMessageModel } from '../models/last-message-model.js'
 import RoomDataDto from '../dtos/room-data-dto.js'
 import mongoose from 'mongoose'
 
+const SESSION_RELOAD_INTERVAL = 30 * 1000;
+
 class SocketService {
+  messageStore = []
+
   onConnection(io, socket) {
     console.log("user connected: ", socket.id)
+
+    socket.on("registerToRoom", (userPhone) => {
+      console.log("test")
+      socket.join(userPhone);
+    });
+
+    if (socket.recovered) {
+      console.log("recovered!");
+      console.log("socket.rooms:", socket.rooms);
+      console.log("socket.data:", socket.data);
+    } else {
+      console.log("new connection");
+      socket.join("sample room");
+    }
 
     this.joinRooms(io, socket)
 
@@ -22,10 +40,7 @@ class SocketService {
 
     this.stopTyping(io, socket)
 
-    socket.on("resubscribe", (data) => {
-      // Логика восстановления подписок
-      console.log(`User resubscribed: ${data.userId}`);
-    });
+    this.sendMessage(io, socket)
 
     socket.on("leave__room", (roomId) => {
       socket.leave(roomId)
@@ -33,25 +48,29 @@ class SocketService {
     })
 
     socket.on("connect_error", () => {
-      socket.auth.token = "abcd";
+      console.log("connect_error");
       socket.connect();
     });
 
+    socket.on("reconnect", (attempt) => console.log(attempt, "reconnect"));
 
-    this.sendMessage(io, socket)
+    socket.on("reconnect_attempt", (attempt) => console.log(attempt, "reconnect_attempt"));
 
+    socket.on("reconnect_error", (error) => console.log(error, "reconnect_error"));
 
-    // socket.on("disconnect", (reason) => {
-    //   console.log(reason)
-    //   if (reason === "io server disconnect") {
-    //     // the disconnection was initiated by the server, you need to reconnect manually
+    socket.on("disconnect", (reason) => {
+      console.log("user disconnected: ", socket.id, reason)
+    })
+  }
 
-    //     socket.connect();
-    //   }
-    //   // else the socket will automatically try to reconnect
-    // });
+  missedMessages(io, socket) {
+    socket.on("get__missed__messages", async () => {
+      const missedMessages = this.messageStore || [];
+      const token = cookie.parse(socket.handshake.headers.cookie)
+      const userData = tokenService.validateRefreshToken(token.refreshToken)
 
-    // socket.on("disconnect", () => console.log("user disconnected: ", socket.id))
+      io.to(userData.id).emit("get__missed__messages", missedMessages);
+    });
   }
 
   typing(io, socket) {
@@ -64,7 +83,7 @@ class SocketService {
 
       if (!roomData) return
 
-      console.log("Gишет")
+      // console.log("Gишет")
 
       socket.broadcast.to(roomData.id).emit("typing", { typing: true })
     })
@@ -79,8 +98,6 @@ class SocketService {
       const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, roomId] } })
 
       if (!roomData) return
-
-      console.log("Не пишет")
 
       socket.broadcast.to(roomData.id).emit("stopped__typing", { typing: false })
     })
@@ -148,6 +165,10 @@ class SocketService {
         io.to(roomData.id).emit("send__message", userData.name, message, userData.id, createdAt)
 
         io.to(userId).emit("room__message", userData.name, message, roomData.id, createdAt, roomData.usersId)
+
+        this.messageStore.push({ userId: userId, message: message })
+
+        // console.log(this.messageStore)
       }
     })
   }
@@ -236,7 +257,7 @@ class SocketService {
     if (!roomData) return
 
     const queryPage = parseInt(page) || 1;
-    const queryLimit = parseInt(limit) || 10;
+    const queryLimit = parseInt(limit) || 40;
 
     const startIndex = (queryPage - 1) * queryLimit;
 
