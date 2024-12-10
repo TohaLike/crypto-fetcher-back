@@ -4,6 +4,7 @@ import { body } from "express-validator"
 import { authMiddleware } from "../middlewares/auth-middleware.js";
 import { socketController } from "../controllers/socket-controller.js";
 import { imageController } from "../controllers/image-controller.js";
+import { imageService } from "../services/image-service.js";
 
 const router = new Router();
 
@@ -20,8 +21,9 @@ router.post("/registration",
 router.post("/room", body("lastMessage").isLength({ min: 1 }), socketController.createRoom)
 router.post("/login", userControllers.login)
 router.post("/logout", userControllers.logout)
-router.post("/upload", imageController.uploadImage)
+router.post("/upload", body("description").isLength({ min: 1, max: 300 }), imageController.uploadImage)
 
+router.get("/posts", authMiddleware, imageService.getPosts)
 router.get("/room/user", authMiddleware, socketController.getRoom)
 router.get("/profile/:user", authMiddleware, userControllers.getProfile)
 router.get("/messages/user", authMiddleware, socketController.getAllMessages)

@@ -22,7 +22,8 @@ const storageConfig = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     let extension = file.originalname.substring(file.originalname.lastIndexOf('.'), file.originalname.length);
-    cb(null, crypto.randomUUID() + extension);  }
+    cb(null, crypto.randomUUID() + extension);
+  }
 })
 
 const fileFilter = (req, file, cb) => {
@@ -33,20 +34,29 @@ const fileFilter = (req, file, cb) => {
   }
   else {
     cb(null, false);
+    const err = new Error('Only .png, .jpg and .jpeg format allowed!')
+    err.name = 'ExtensionError'
+    return cb(err);
   }
 }
 
 app.use(express.json());
 app.use(cookieParser());
+
 app.use(cors({
   credentials: true,
   methods: ['GET', 'POST'],
   origin: process.env.CLIENT_URL,
 }));
-app.use(multer({ storage: storageConfig, fileFilter: fileFilter }).single("file"));
-app.use("/api", routers)
-app.use(errorMiddleware)
 
+app.use(multer({
+  storage: storageConfig,
+  limits: { fileSize: 1 * 1024 * 1024 },
+  fileFilter: fileFilter
+}).any("file", 5));
+
+app.use("/api", routers) 
+app.use(errorMiddleware)
 
 const io = new Server(server, {
   cors: {
