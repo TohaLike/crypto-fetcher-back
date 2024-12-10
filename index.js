@@ -8,12 +8,7 @@ import { routers } from "./router/index.js"
 import { errorMiddleware } from "./middlewares/error-middleware.js";
 import { Server } from "socket.io";
 import { socketService } from "./services/socket-service.js";
-import session from "express-session";
-
-import { availableParallelism } from 'node:os';
-import cluster from 'node:cluster';
-import { createAdapter, setupPrimary } from '@socket.io/cluster-adapter';
-
+import multer from "multer";
 
 dotenv.config()
 
@@ -21,13 +16,26 @@ const PORT = process.env.PORT || 4000;
 const app = express();
 const server = http.createServer(app);
 
-const sessionMiddleware = session({
-  secret: "changeit",
-  resave: true,
-  saveUninitialized: true,
-});
+const storageConfig = multer.diskStorage({
+  destination: (req, res, cb) => {
+    cb(null, "./images")
+  },
+  filename: (req, file, cb) => {
+    let extension = file.originalname.substring(file.originalname.lastIndexOf('.'), file.originalname.length);
+    cb(null, crypto.randomUUID() + extension);  }
+})
 
-app.use(sessionMiddleware)
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype === "image/png" ||
+    file.mimetype === "image/jpg" ||
+    file.mimetype === "image/jpeg") {
+    cb(null, true);
+  }
+  else {
+    cb(null, false);
+  }
+}
+
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
@@ -35,6 +43,7 @@ app.use(cors({
   methods: ['GET', 'POST'],
   origin: process.env.CLIENT_URL,
 }));
+app.use(multer({ storage: storageConfig, fileFilter: fileFilter }).single("file"));
 app.use("/api", routers)
 app.use(errorMiddleware)
 
@@ -52,8 +61,6 @@ const io = new Server(server, {
   pingTimeout: 60000,
   pingInterval: 25000,
 });
-
-io.engine.use(sessionMiddleware)
 
 io.use((socket, next) => {
   const token = socket.handshake.auth.token

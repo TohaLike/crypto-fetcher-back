@@ -3,6 +3,7 @@ import { userControllers } from "../controllers/user-controller.js";
 import { body } from "express-validator"
 import { authMiddleware } from "../middlewares/auth-middleware.js";
 import { socketController } from "../controllers/socket-controller.js";
+import { imageController } from "../controllers/image-controller.js";
 
 const router = new Router();
 
@@ -19,6 +20,7 @@ router.post("/registration",
 router.post("/room", body("lastMessage").isLength({ min: 1 }), socketController.createRoom)
 router.post("/login", userControllers.login)
 router.post("/logout", userControllers.logout)
+router.post("/upload", imageController.uploadImage)
 
 router.get("/room/user", authMiddleware, socketController.getRoom)
 router.get("/profile/:user", authMiddleware, userControllers.getProfile)
