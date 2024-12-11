@@ -9,12 +9,17 @@ import { errorMiddleware } from "./middlewares/error-middleware.js";
 import { Server } from "socket.io";
 import { socketService } from "./services/socket-service.js";
 import multer from "multer";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config()
 
 const PORT = process.env.PORT || 4000;
 const app = express();
 const server = http.createServer(app);
+
+const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+const __dirname = path.dirname(__filename);
 
 const storageConfig = multer.diskStorage({
   destination: (req, res, cb) => {
@@ -54,6 +59,9 @@ app.use(multer({
   limits: { fileSize: 1 * 1024 * 1024 },
   fileFilter: fileFilter
 }).any("file", 5));
+
+app.use(express.static(__dirname + '/images'));
+app.use('/images', express.static('images'));
 
 app.use("/api", routers) 
 app.use(errorMiddleware)

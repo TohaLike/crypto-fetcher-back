@@ -1,6 +1,8 @@
-import mongoose, { Schema } from "mongoose";
+import { Schema, model } from "mongoose";
 
 const ImageSchema = new Schema({
-  imageUrl: { type: mongoose.Types.ObjectId }
+  fileName: { type: Array }
+}, { timestamps: true })
 
-})
+
+export const imageModel = model("Image", ImageSchema)
