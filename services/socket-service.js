@@ -105,6 +105,8 @@ class SocketService {
     socket.on("join__rooms", () => {
       const getCookie = socket.handshake.headers.cookie
 
+      if (!getCookie) return
+
       const token = cookie.parse(getCookie)
 
       const userData = tokenService.validateRefreshToken(token.refreshToken)
