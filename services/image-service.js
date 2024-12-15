@@ -3,6 +3,7 @@ import ApiError from "../exceptions/api-error.js"
 import { postModel } from "../models/post-model.js"
 import PostDto from "../dtos/post-dto.js"
 import { imageModel } from "../models/image-model.js"
+import { newsModel } from "../models/news-model.js"
 
 class ImageService {
   async uploadImage(refreshToken, text, files) {
@@ -33,7 +34,11 @@ class ImageService {
 
     const startIndex = (queryPage - 1) * queryLimit;
 
-    const posts = await postModel.find().sort({ createdAt: -1 }).skip(startIndex).limit(queryLimit).populate({ path: "owner", select: "name _id" })
+    const addNews = await newsModel.findOne({ owner: userData.id })
+
+    if (!addNews) return
+
+    const posts = await postModel.find({ owner: { $in: addNews.newsFrom } }).sort({ createdAt: -1 }).skip(startIndex).limit(queryLimit).populate({ path: "owner", select: "name _id" })
 
     if (!posts) return
 
@@ -43,18 +48,15 @@ class ImageService {
   }
 
 
-  async getImage(refreshToken, params) {
+  async loadMore(refreshToken) {
     const userData = tokenService.validateRefreshToken(refreshToken)
     const token = await tokenService.findToken(refreshToken)
 
     if (!userData || !token) throw ApiError.UnauthorizedError()
 
-    console.log(params)
+    const posts = await postModel.find()
 
-    const filePath = await imageModel.find({ fileName: params })
-
-
-    return filePath
+    return posts
   }
 }
 

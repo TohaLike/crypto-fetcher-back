@@ -89,6 +89,19 @@ class UserContoller {
       next(e)
     }
   }
+
+  async subscribeUser(req, res, next) {
+    try {
+      const { refreshToken } = req.cookies
+      const { userId } = req.body
+
+      const newsFrom = await userService.subscribeUser(refreshToken, userId)
+
+      return res.json(newsFrom)
+    } catch (e) {
+      next(e)
+    }
+  }
 }
 
 

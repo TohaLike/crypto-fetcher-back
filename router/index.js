@@ -21,8 +21,9 @@ router.post("/room", body("lastMessage").isLength({ min: 1 }), socketController.
 router.post("/login", userControllers.login)
 router.post("/logout", userControllers.logout)
 router.post("/upload", body("description").isLength({ min: 1, max: 700 }), imageController.uploadImage)
+router.post("/subscribe", userControllers.subscribeUser)
 
-router.get("/images/:filename", imageController.getImage)
+router.get("/loadmore", imageController.loadMore)
 router.get("/posts/home", authMiddleware, imageController.getPosts)
 router.get("/room/user", authMiddleware, socketController.getRoom)
 router.get("/profile/:user", authMiddleware, userControllers.getProfile)

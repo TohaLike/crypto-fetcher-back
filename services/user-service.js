@@ -7,6 +7,7 @@ import UserDto from "../dtos/user-dto.js"
 import ApiError from "../exceptions/api-error.js";
 import { roomModel } from "../models/room-model.js";
 import mongoose from "mongoose";
+import { newsModel } from "../models/news-model.js";
 
 class UserService {
   async registration(name, email, day, month, year, password) {
@@ -118,6 +119,31 @@ class UserService {
     const usersDto = users.map((e) => new UserDto(e))
 
     return usersDto
+  }
+
+
+  async subscribeUser(refreshToken, userId) {
+    if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
+
+    const userData = tokenService.validateRefreshToken(refreshToken);
+    const tokenFromDb = await tokenService.findToken(refreshToken)
+
+    if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
+
+    const news = await newsModel.findOne({ owner: userData.id })
+    const checkSubscribe = await newsModel.findOne({ owner: userData.id, newsFrom: { $all: [userId] } })
+
+    if (!news) {
+      await newsModel.create({ owner: userData.id, newsFrom: userId })
+      return "Created"
+    }
+
+    if (!checkSubscribe) {
+      news.newsFrom.push(userId)
+      return await news.save()
+    } else {
+      throw ApiError.BadRequest("Пользователь уже находится у вас в друзьях")
+    }
   }
 }
 

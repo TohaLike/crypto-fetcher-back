@@ -37,16 +37,13 @@ class ImageController {
   }
 
 
-  async getImage(req, res, next) {
+  async loadMore(req, res, next) {
     try {
       const { refreshToken } = req.cookies
-      const { params } = req
 
-      const file = await imageService.getImage(refreshToken, params)
-
-      console.log(file)
-
-      return res.sendFile(file)
+      const loadMore = await imageService.loadMore(refreshToken)
+      
+      return res.json(loadMore)
     } catch (e) {
       next(e)
     }

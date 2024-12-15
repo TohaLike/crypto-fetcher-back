@@ -4,6 +4,7 @@ const PostSchema = new Schema({
   owner: { type: Schema.Types.ObjectId, ref: "User" },
   images: { type: Array },
   text: { type: String },
+  loaded: { type: Boolean }
 }, { timestamps: true })
 
 export const postModel = model("Posts", PostSchema)
