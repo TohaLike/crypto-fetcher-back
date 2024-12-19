@@ -60,6 +60,8 @@ class ImageService {
 
 
   async loadMore(refreshToken, createdAt) {
+    if (!createdAt) return
+
     const userData = tokenService.validateRefreshToken(refreshToken)
     const token = await tokenService.findToken(refreshToken)
 
