@@ -41,13 +41,11 @@ class ImageService {
     if (!userData || !token) throw ApiError.UnauthorizedError()
 
     const queryPage = parseInt(page) || 1;
-    const queryLimit = parseInt(limit) || 10;
+    const queryLimit = parseInt(limit) || 40;
 
     const startIndex = (queryPage - 1) * queryLimit;
 
     const addNews = await newsModel.findOne({ owner: userData.id })
-
-    // if (!addNews) return
 
     const news = addNews ? addNews.newsFrom.concat(userData.id) : userData.id
 
