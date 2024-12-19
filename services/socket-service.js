@@ -14,6 +14,7 @@ const SESSION_RELOAD_INTERVAL = 30 * 1000;
 
 class SocketService {
   messageStore = []
+  postsStore = []
 
   onConnection(io, socket) {
     console.log("user connected: ", socket.id)
@@ -31,6 +32,8 @@ class SocketService {
       console.log("new connection");
       socket.join("sample room");
     }
+
+    this.userOnline(io, socket)
 
     this.joinRooms(io, socket)
 
@@ -60,6 +63,16 @@ class SocketService {
 
     socket.on("disconnect", (reason) => {
       console.log("user disconnected: ", socket.id, reason)
+    })
+  }
+
+  userOnline(io, socket) {
+    socket.on("online", async (userId) => {
+      const token = cookie.parse(socket.handshake.headers.cookie)
+      const userData = tokenService.validateRefreshToken(token.refreshToken)
+      console.log(userId)
+
+      io.to(userId).emit("online", { online: true })
     })
   }
 

@@ -6,6 +6,8 @@ import { imageModel } from "../models/image-model.js"
 import { newsModel } from "../models/news-model.js"
 
 class ImageService {
+  loadedPosts = []
+
   async uploadImage(refreshToken, text, files) {
     // if (!files) throw ApiError.BadRequest("Ошибка загрузки файла")
 
@@ -14,31 +16,42 @@ class ImageService {
 
     if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
 
+    // const news = await newsModel.find({ owner: userData.id })
+
+    // if (!news) {
+    //   const news 
+
+    // }
+
     await imageModel.create({ fileName: [...files] })
 
     const data = await postModel.create({ owner: userData.id, text: text, images: [...files] })
+
+    this.loadedPosts.push(data)
 
     return data
   }
 
 
 
-  async getPosts(refreshToken, page, limit) {
+  async getSubscribePosts(refreshToken, page, limit) {
     const userData = tokenService.validateRefreshToken(refreshToken)
     const token = await tokenService.findToken(refreshToken)
 
     if (!userData || !token) throw ApiError.UnauthorizedError()
 
     const queryPage = parseInt(page) || 1;
-    const queryLimit = parseInt(limit) || 5;
+    const queryLimit = parseInt(limit) || 10;
 
     const startIndex = (queryPage - 1) * queryLimit;
 
     const addNews = await newsModel.findOne({ owner: userData.id })
 
-    if (!addNews) return
+    // if (!addNews) return
 
-    const posts = await postModel.find({ owner: { $in: addNews.newsFrom } }).sort({ createdAt: -1 }).skip(startIndex).limit(queryLimit).populate({ path: "owner", select: "name _id" })
+    const news = addNews ? addNews.newsFrom.concat(userData.id) : userData.id
+
+    const posts = await postModel.find({ owner: { $in: news } }).sort({ createdAt: -1 }).skip(startIndex).limit(queryLimit).populate({ path: "owner", select: "name _id" })
 
     if (!posts) return
 
@@ -48,15 +61,19 @@ class ImageService {
   }
 
 
-  async loadMore(refreshToken) {
+  async loadMore(refreshToken, createdAt) {
     const userData = tokenService.validateRefreshToken(refreshToken)
     const token = await tokenService.findToken(refreshToken)
 
     if (!userData || !token) throw ApiError.UnauthorizedError()
 
-    const posts = await postModel.find()
+    const addNews = await newsModel.findOne({ owner: userData.id })
 
-    return posts
+    const postsCount = await postModel.countDocuments({ owner: { $in: addNews.newsFrom }, createdAt: { $gt: createdAt } })
+
+    if (postsCount <= 0) return
+
+    return postsCount
   }
 }
 

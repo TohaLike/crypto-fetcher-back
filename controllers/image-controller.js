@@ -28,7 +28,7 @@ class ImageController {
       const { refreshToken } = req.cookies
       const { page } = req.query
 
-      const images = await imageService.getPosts(refreshToken, page)
+      const images = await imageService.getSubscribePosts(refreshToken, page)
 
       return res.json(images)
     } catch (e) {
@@ -40,9 +40,10 @@ class ImageController {
   async loadMore(req, res, next) {
     try {
       const { refreshToken } = req.cookies
+      const { createdAt } = req.body
 
-      const loadMore = await imageService.loadMore(refreshToken)
-      
+      const loadMore = await imageService.loadMore(refreshToken, createdAt)
+
       return res.json(loadMore)
     } catch (e) {
       next(e)
