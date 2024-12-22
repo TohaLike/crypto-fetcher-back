@@ -35,7 +35,9 @@ const fileFilter = (req, file, cb) => {
   if (file.mimetype === "image/png" ||
     file.mimetype === "image/jpg" ||
     file.mimetype === "image/jpeg" ||
-    file.mimetype === "image/HEIf"
+    file.mimetype === "image/heif" ||
+    file.mimetype === "image/HEIF"
+
   ) {
     cb(null, true);
   }
