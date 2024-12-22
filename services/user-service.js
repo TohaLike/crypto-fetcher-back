@@ -34,7 +34,7 @@ class UserService {
 
     const options = await profileOptionsModel.create({ user: user.id, defaultColor: color, image: [] })
 
-    // await user.updateOne({ options: options.id })
+    await user.updateOne({ options: options.id })
 
     // await mailService.sendActivationMail(email, `${process.env.API_URL}/api/activate/${activationLink}`)
 
