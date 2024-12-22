@@ -91,7 +91,7 @@ class UserService {
       throw ApiError.UnauthorizedError()
     }
 
-    const user = await userModel.findById(userData.id)
+    const user = await userModel.findById(userData.id).populate({ path: "options", select: "image defaultColor" })
     const userDto = new UserDto(user)
     const tokens = tokenService.generateTokens({ ...userDto })
 
@@ -109,7 +109,7 @@ class UserService {
       throw ApiError.UnauthorizedError()
     }
 
-    const profile = await userModel.findOne({ _id: params.user }).populate({ path: "options", select: "image" })
+    const profile = await userModel.findOne({ _id: params.user }).populate({ path: "options", select: "image defaultColor" })
 
     if (!profile || !userData) {
       throw ApiError.BadRequest("Пользователь не найден")
@@ -154,7 +154,7 @@ class UserService {
 
     if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
 
-    const users = await userModel.find().populate({path: "options", select: "image defaultColor"})
+    const users = await userModel.find().populate({ path: "options", select: "image defaultColor" })
 
     const usersDto = users.map((e) => new UserDto(e))
 

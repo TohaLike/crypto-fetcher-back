@@ -38,7 +38,11 @@ class ImageService {
 
     const news = addNews ? addNews.newsFrom.concat(userData.id) : userData.id
 
-    const posts = await postModel.find({ owner: { $in: news } }).sort({ createdAt: -1 }).skip(startIndex).limit(queryLimit).populate({ path: "owner", select: "name _id" })
+    const posts = await postModel.find({ owner: { $in: news } })
+      .sort({ createdAt: -1 })
+      .skip(startIndex)
+      .limit(queryLimit)
+      .populate({ path: "owner", select: "name _id", populate: { path: "options", select: "image defaultColor" } })
 
     if (!posts) return
 
@@ -74,7 +78,7 @@ class ImageService {
 
     if (!userData || !token) throw ApiError.UnauthorizedError()
 
-    const getPosts = await postModel.find({ owner: params.user }).sort({ createdAt: -1 }).populate({ path: "owner", select: "name" })
+    const getPosts = await postModel.find({ owner: params.user }).sort({ createdAt: -1 }).populate({ path: "owner", select: "name", populate: { path: "options", select: "image defaultColor" } })
 
     const postsDto = getPosts.map((e) => new PostDto(e))
 
