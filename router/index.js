@@ -20,10 +20,12 @@ router.post("/registration",
 router.post("/room", body("lastMessage").isLength({ min: 1 }), socketController.createRoom)
 router.post("/login", userControllers.login)
 router.post("/logout", userControllers.logout)
-router.post("/upload", body("description").isLength({ min: 1, max: 700 }), imageController.uploadImage)
+router.post("/upload", body("description").isLength({ min: 1, max: 700 }), imageController.uploadPost)
+router.post("/upload_options", userControllers.uploadOptions)
 router.post("/subscribe", userControllers.subscribeUser)
 router.post("/update_subscriptions", imageController.loadMore)
 
+router.get("/profile/posts/:user", authMiddleware, imageController.getUserPosts)
 router.get("/posts/home", authMiddleware, imageController.getPosts)
 router.get("/room/user", authMiddleware, socketController.getRoom)
 router.get("/profile/:user", authMiddleware, userControllers.getProfile)

@@ -102,6 +102,18 @@ class UserContoller {
       next(e)
     }
   }
+
+  async uploadOptions(req, res, next) {
+    try {
+      const { refreshToken } = req.cookies
+
+      const uploadOptions = await userService.uploadOptions(refreshToken, req.files)
+
+      return res.json(uploadOptions)
+    } catch (e) {
+      next(e)
+    }
+  }
 }
 
 

@@ -4,7 +4,7 @@ import ApiError from "../exceptions/api-error.js";
 
 
 class ImageController {
-  async uploadImage(req, res, next) {
+  async uploadPost(req, res, next) {
     try {
       const { refreshToken } = req.cookies
       const { description } = req.body
@@ -15,7 +15,7 @@ class ImageController {
         return next(ApiError.BadRequest("Ошибка при валидации", errors.array()))
       }
 
-      const response = await imageService.uploadImage(refreshToken, description, req.files)
+      const response = await imageService.uploadPost(refreshToken, description, req.files)
 
       return res.json(response)
     } catch (e) {
@@ -45,6 +45,20 @@ class ImageController {
       const loadMore = await imageService.loadMore(refreshToken, createdAt)
 
       return res.json(loadMore)
+    } catch (e) {
+      next(e)
+    }
+  }
+
+
+  async getUserPosts(req, res, next) {
+    try {
+      const { refreshToken } = req.cookies
+      const { params } = req
+
+      const userPosts = await imageService.getUserPosts(refreshToken, params)
+
+      return res.json(userPosts)
     } catch (e) {
       next(e)
     }

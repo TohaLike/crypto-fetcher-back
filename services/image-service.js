@@ -4,11 +4,11 @@ import { postModel } from "../models/post-model.js"
 import PostDto from "../dtos/post-dto.js"
 import { imageModel } from "../models/image-model.js"
 import { newsModel } from "../models/news-model.js"
+import mongoose from "mongoose"
 
 class ImageService {
-  loadedPosts = []
 
-  async uploadImage(refreshToken, text, files) {
+  async uploadPost(refreshToken, text, files) {
     // if (!files) throw ApiError.BadRequest("Ошибка загрузки файла")
 
     const userData = tokenService.validateRefreshToken(refreshToken)
@@ -16,23 +16,12 @@ class ImageService {
 
     if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
 
-    // const news = await newsModel.find({ owner: userData.id })
-
-    // if (!news) {
-    //   const news 
-
-    // }
-
     await imageModel.create({ fileName: [...files] })
 
-    const data = await postModel.create({ owner: userData.id, text: text, images: [...files] })
-
-    this.loadedPosts.push(data)
+    const data = (await postModel.create({ owner: userData.id, text: text, images: [...files] })).populate({ path: "owner", select: "name" })
 
     return data
   }
-
-
 
   async getSubscribePosts(refreshToken, page, limit) {
     const userData = tokenService.validateRefreshToken(refreshToken)
@@ -74,6 +63,22 @@ class ImageService {
     if (postsCount <= 0) return
 
     return postsCount
+  }
+
+
+  async getUserPosts(refreshToken, params) {
+    if (!mongoose.isObjectIdOrHexString(params.user)) throw ApiError.InvalidId()
+
+    const userData = tokenService.validateRefreshToken(refreshToken)
+    const token = await tokenService.findToken(refreshToken)
+
+    if (!userData || !token) throw ApiError.UnauthorizedError()
+
+    const getPosts = await postModel.find({ owner: params.user }).sort({ createdAt: -1 }).populate({ path: "owner", select: "name" })
+
+    const postsDto = getPosts.map((e) => new PostDto(e))
+
+    return getPosts
   }
 }
 

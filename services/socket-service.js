@@ -235,7 +235,7 @@ class SocketService {
     if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
 
     const rooms = await roomModel.find({ usersId: userData.id }).populate({
-      path: "usersId", select: "name", match: {
+      path: "usersId", select: "name", populate: { path: "options", select: "image" }, match: {
         _id: {
           $ne: userData.id
         }

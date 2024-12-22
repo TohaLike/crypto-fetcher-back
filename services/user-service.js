@@ -8,8 +8,13 @@ import ApiError from "../exceptions/api-error.js";
 import { roomModel } from "../models/room-model.js";
 import mongoose from "mongoose";
 import { newsModel } from "../models/news-model.js";
+import { profileOptionsModel } from "../models/profile-options-model.js";
 
 class UserService {
+  generateColor(size) {
+    return [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+  }
+
   async registration(name, email, day, month, year, password) {
     const candidate = await userModel.findOne({ email });
 
@@ -24,6 +29,13 @@ class UserService {
     const createdAt = new Date();
 
     const user = await userModel.create({ name, email, date, password: hashPassword, activationLink, createdAt });
+
+    const color = this.generateColor(6)
+
+    const options = await profileOptionsModel.create({ user: user.id, defaultColor: color, image: [] })
+
+    await user.updateOne({ options: options.id })
+
     // await mailService.sendActivationMail(email, `${process.env.API_URL}/api/activate/${activationLink}`)
 
     const userDto = new UserDto(user);
@@ -97,7 +109,7 @@ class UserService {
       throw ApiError.UnauthorizedError()
     }
 
-    const profile = await userModel.findOne({ _id: params.user })
+    const profile = await userModel.findOne({ _id: params.user }).populate({ path: "options", select: "image" })
 
     if (!profile || !userData) {
       throw ApiError.BadRequest("Пользователь не найден")
@@ -108,13 +120,41 @@ class UserService {
     return userDto
   }
 
+  async uploadOptions(refreshToken, file) {
+    const userData = tokenService.validateRefreshToken(refreshToken)
+    const tokenFromDb = await tokenService.findToken(refreshToken)
+
+    if (!userData || !tokenFromDb) {
+      throw ApiError.UnauthorizedError()
+    }
+
+    const options = await profileOptionsModel.findOne({ user: userData.id })
+    const profile = await userModel.findOne({ _id: userData.id })
+
+    const color = this.generateColor(6)
+
+    if (!options) {
+      const createOptions = await profileOptionsModel.create({ user: userData.id, defaultColor: color, image: file })
+
+      await profile.updateOne({ options: createOptions.id })
+
+      return createOptions
+    } else {
+      const updateOptions = await profileOptionsModel.findOneAndUpdate({ user: userData.id }, { image: file })
+
+      await profile.updateOne({ options: updateOptions.id })
+
+      return updateOptions
+    }
+  }
+
   async getAllUsers(refreshToken) {
     const userData = tokenService.validateRefreshToken(refreshToken);
     const tokenFromDb = await tokenService.findToken(refreshToken)
 
     if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
 
-    const users = await userModel.find()
+    const users = await userModel.find().populate({path: "options", select: "image defaultColor"})
 
     const usersDto = users.map((e) => new UserDto(e))
 

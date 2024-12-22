@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose"
+import { Schema, Types, model } from "mongoose"
 
 
 const UserSchema = new Schema({
@@ -9,7 +9,8 @@ const UserSchema = new Schema({
   activationLink: { type: String },
   password: { type: String, required: true },
   createdAt: { type: Date, required: true },
-  profileVerification: { type: Boolean }
+  profileVerification: { type: Boolean },
+  options: { type: Schema.Types.ObjectId, ref: "Profileoptions" }
 })
 
 export const userModel = model("User", UserSchema)
