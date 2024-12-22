@@ -19,7 +19,15 @@ class ImageService {
     await imageModel.create({ fileName: [...files] })
 
     const data = (await postModel.create({ owner: userData.id, text: text, images: [...files] }))
-    .populate({ path: "owner", select: "name", populate: { path: "options", select: "image defaultColor" } })
+      .populate(
+        {
+          path: "owner",
+          select: "name",
+          populate: {
+            path: "options",
+            select: "image defaultColor"
+          }
+        })
 
     return data
   }

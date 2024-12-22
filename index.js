@@ -34,7 +34,9 @@ const storageConfig = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   if (file.mimetype === "image/png" ||
     file.mimetype === "image/jpg" ||
-    file.mimetype === "image/jpeg") {
+    file.mimetype === "image/jpeg" ||
+    file.mimetype === "image/HEIf"
+  ) {
     cb(null, true);
   }
   else {
@@ -63,7 +65,7 @@ app.use(multer({
 app.use(express.static(__dirname + '/images'));
 app.use('/images', express.static('images'));
 
-app.use("/api", routers) 
+app.use("/api", routers)
 app.use(errorMiddleware)
 
 const io = new Server(server, {
