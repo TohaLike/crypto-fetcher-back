@@ -91,7 +91,7 @@ class UserService {
 
     console.log(userData)
 
-    const tokenData = await tokenModel.findOne({ refreshToken: refreshToken })
+    const tokenData = await tokenModel.findOne({ refreshToken: refreshToken.trim() })
 
     console.log(tokenData)
 
