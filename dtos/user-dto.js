@@ -16,6 +16,5 @@ export default class UserDto {
     this.isActivated = model.isActivated;
     this.createdAt = model.createdAt;
     this.profileVerification = model.profileVerification;
-    this.options = model.options
   }
 }
