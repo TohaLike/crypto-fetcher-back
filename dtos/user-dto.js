@@ -6,7 +6,6 @@ export default class UserDto {
   isActivated;
   createdAt;
   profileVerification;
-  options;
 
   constructor(model) {
     this.name = model.name;
