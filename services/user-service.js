@@ -88,6 +88,9 @@ class UserService {
     console.log(refreshToken)
 
     const userData = tokenService.validateRefreshToken(refreshToken)
+
+    console.log(userData)
+
     const tokenData = await tokenModel.findOne({ refreshToken })
 
     console.log(tokenData)
