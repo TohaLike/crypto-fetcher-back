@@ -50,9 +50,11 @@ class UserContoller {
   async refresh(req, res, next) {
     try {
       const { refreshToken } = req.cookies
+      
+      console.log(refreshToken, userData)
+
       const userData = await userService.refresh(refreshToken)
 
-      console.log(refreshToken, userData)
 
       res.cookie("refreshToken", userData.refreshToken, { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true, })
       return res.json(userData)
