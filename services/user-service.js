@@ -9,6 +9,7 @@ import { roomModel } from "../models/room-model.js";
 import mongoose from "mongoose";
 import { newsModel } from "../models/news-model.js";
 import { profileOptionsModel } from "../models/profile-options-model.js";
+import { tokenModel } from "../models/token-model.js";
 
 class UserService {
   generateColor(size) {
@@ -85,9 +86,9 @@ class UserService {
     }
 
     const userData = tokenService.validateRefreshToken(refreshToken)
-    const tokenFromDb = await tokenService.findToken(refreshToken)
+    const tokenData = await tokenModel.findOne({ refreshToken })
 
-    if (!userData || !tokenFromDb) {
+    if (!userData || !tokenData) {
       throw ApiError.UnauthorizedError()
     }
 
@@ -96,6 +97,7 @@ class UserService {
     const tokens = tokenService.generateTokens({ ...userDto })
 
     await tokenService.saveToken(userDto.id, tokens.refreshToken)
+
     return { ...tokens, user: userDto }
   }
 
