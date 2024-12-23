@@ -34,12 +34,16 @@ class UserService {
 
     const options = await profileOptionsModel.create({ user: user.id, defaultColor: color, image: [] })
 
-    await user.updateOne({ options: options.id })
+    const updateOptions = await user.updateOne({ options: options.id })
+
+    console.log(updateOptions)
 
     // await mailService.sendActivationMail(email, `${process.env.API_URL}/api/activate/${activationLink}`)
 
     const userDto = new UserDto(user);
+
     const tokens = tokenService.generateTokens({ ...userDto });
+
     await tokenService.saveToken(userDto.id, tokens.refreshToken);
 
     return { ...tokens, user: userDto }
