@@ -14,6 +14,8 @@ class UserContoller {
 
       const userData = await userService.registration(name, email, day, month, year, password);
 
+
+      console.log(userData.refreshToken, "registration")
       // secure: true, sameSite: 'none'
 
       res.cookie("refreshToken", userData.refreshToken, { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true, })
@@ -50,11 +52,12 @@ class UserContoller {
   async refresh(req, res, next) {
     try {
       const { refreshToken } = req.cookies
-      
+
       // console.log(refreshToken)
 
       const userData = await userService.refresh(refreshToken)
 
+      console.log(userData.refreshToken, "registration")
 
       res.cookie("refreshToken", userData.refreshToken, { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true, })
       return res.json(userData)
