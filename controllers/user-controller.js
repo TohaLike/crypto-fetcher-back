@@ -51,7 +51,7 @@ class UserContoller {
     try {
       const { refreshToken } = req.cookies
       
-      console.log(refreshToken, userData)
+      console.log(refreshToken)
 
       const userData = await userService.refresh(refreshToken)
 
