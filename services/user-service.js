@@ -34,14 +34,10 @@ class UserService {
 
     const options = await profileOptionsModel.create({ user: user.id, defaultColor: color, image: [] })
 
-
     // await mailService.sendActivationMail(email, `${process.env.API_URL}/api/activate/${activationLink}`)
 
     const userDto = new UserDto(user);
 
-    console.log(userDto)
-
-    
     const tokens = tokenService.generateTokens({ ...userDto });
 
     await tokenService.saveToken(userDto.id, tokens.refreshToken);
@@ -67,6 +63,7 @@ class UserService {
     if (!user) {
       throw ApiError.BadRequest("Пользователь с таким email не найден")
     }
+
     const isPassEquals = await bcrypt.compare(password, user.password)
 
     if (!isPassEquals) {
@@ -92,8 +89,6 @@ class UserService {
 
     const userData = tokenService.validateRefreshToken(refreshToken)
     const tokenFromDb = await tokenService.findToken(refreshToken)
-
-    console.log(refreshToken, tokenFromDb)
 
     if (!userData || !tokenFromDb) {
       throw ApiError.UnauthorizedError()
