@@ -10,7 +10,9 @@ const UserSchema = new Schema({
   password: { type: String, required: true },
   createdAt: { type: Date, required: true },
   profileVerification: { type: Boolean },
-  options: { type: Schema.Types.ObjectId, ref: "Profileoptions" }
+  options: { type: Schema.Types.ObjectId, ref: "Profileoptions" },
+  subscribers: { type: Schema.Types.ObjectId, ref: "Subscribers" },
+  following: { type: Schema.Types.ObjectId, ref: "News" }
 })
 
 export const userModel = model("User", UserSchema)

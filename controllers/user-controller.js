@@ -106,6 +106,57 @@ class UserContoller {
     }
   }
 
+  async subscribeNews(req, res, next) {
+    try {
+      const { refreshToken } = req.cookies
+      const { userId } = req.body
+
+      const newsFrom = await userService.subscribeNews(refreshToken, userId)
+
+      return res.json(newsFrom)
+    } catch (e) {
+      next(e)
+    }
+  }
+
+  async acceptFriend(req, res, next) {
+    try {
+      const { refreshToken } = req.cookies
+      const { userId } = req.body
+
+      const acceptFriend = await userService.acceptFriend(refreshToken, userId)
+
+      return res.json(acceptFriend)
+    } catch (e) {
+      next(e)
+    }
+  }
+
+  async getFriends(req, res, next) {
+    try {
+      const { refreshToken } = req.cookies
+
+      const getFriends = await userService.getFriends(refreshToken, req.params)
+
+      return res.json(getFriends)
+    } catch (e) {
+      next(e)
+    }
+  }
+
+  async getSubscriptions(req, res, next) {
+    try {
+      const { refreshToken } = req.cookies
+
+      const getSubscriptions = await userService.getSubscriptions(refreshToken, req.params)
+
+      return res.json(getSubscriptions)
+    } catch (e) {
+      next(e)
+    }
+  }
+
+
   async uploadOptions(req, res, next) {
     try {
       const { refreshToken } = req.cookies

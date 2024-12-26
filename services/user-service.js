@@ -9,6 +9,9 @@ import { roomModel } from "../models/room-model.js";
 import mongoose from "mongoose";
 import { newsModel } from "../models/news-model.js";
 import { profileOptionsModel } from "../models/profile-options-model.js";
+import ProfileDto from "../dtos/profile-dto.js";
+import { friendsModel } from "../models/friends-model.js";
+import { subscribersModel } from "../models/subscribers-model.js";
 
 class UserService {
   generateColor(size) {
@@ -34,6 +37,10 @@ class UserService {
 
     const options = await profileOptionsModel.create({ user: user.id, defaultColor: color, image: [] })
 
+    const subscribe = await subscribersModel.create({ user: user.id, subscribers: [] })
+
+    const news = await newsModel.create({ owner: user.id, newsFrom: [] })
+
     // await mailService.sendActivationMail(email, `${process.env.API_URL}/api/activate/${activationLink}`)
 
     const userDto = new UserDto(user);
@@ -41,8 +48,8 @@ class UserService {
     const tokens = tokenService.generateTokens({ ...userDto });
 
     await tokenService.saveToken(userDto.id, tokens.refreshToken);
-    
-    await user.updateOne({ options: options.id })
+
+    await user.updateOne({ options: options.id, subscribers: subscribe.id, following: news.id })
 
     return { ...tokens, user: userDto }
   }
@@ -63,7 +70,6 @@ class UserService {
     if (!user) {
       throw ApiError.BadRequest("Пользователь с таким email не найден")
     }
-
     const isPassEquals = await bcrypt.compare(password, user.password)
 
     if (!isPassEquals) {
@@ -94,13 +100,33 @@ class UserService {
       throw ApiError.UnauthorizedError()
     }
 
-    const user = await userModel.findById(userData.id).populate({ path: "options", select: "image defaultColor" })
+    const user = await userModel
+      .findById(userData.id)
+      .populate({ path: "options", select: "image defaultColor" })
+      .populate({
+        path: "subscribers",
+        select: "subscribers",
+        populate: {
+          path: "subscribers",
+          select: "name options",
+          options: { limit: 3 },
+          populate: {
+            path: "options",
+            select: "image defaultColor"
+          }
+        }
+      })
+
     const userDto = new UserDto(user)
     const tokens = tokenService.generateTokens({ ...userDto })
 
+
+
+    const profileDto = new ProfileDto(user)
+
     await tokenService.saveToken(userDto.id, tokens.refreshToken)
-    
-    return { ...tokens, user: userDto }
+
+    return { ...tokens, user: profileDto }
   }
 
   async getProfile(params, refreshToken) {
@@ -109,20 +135,113 @@ class UserService {
     const userData = tokenService.validateRefreshToken(refreshToken)
     const tokenFromDb = await tokenService.findToken(refreshToken)
 
+    const checkSubscribe = await subscribersModel
+      .findOne({ user: params.user, subscribers: { $all: [userData.id] } })
+
     if (!userData || !tokenFromDb) {
       throw ApiError.UnauthorizedError()
     }
 
-    const profile = await userModel.findOne({ _id: params.user }).populate({ path: "options", select: "image defaultColor" })
+    const profile = await userModel
+      .findOne({ _id: params.user })
+      .populate({
+        path: "options",
+        select: "image defaultColor"
+      })
+      .populate({
+        path: "subscribers",
+        select: "subscribers",
+        populate: {
+          path: "subscribers",
+          select: "name options",
+          options: {
+            limit: 2,
+            sort: {
+              createdAt: - 1
+            }
+          },
+          populate: {
+            path: "options",
+            select: "image defaultColor"
+          }
+        }
+      })
+      .populate({
+        path: "following",
+        select: "newsFrom",
+        populate: {
+          path: "newsFrom",
+          select: "name options",
+          options: {
+            limit: 2,
+            sort: {
+              createdAt: - 1
+            }
+          },
+          populate: {
+            path: "options",
+            select: "image defaultColor"
+          }
+        }
+      })
 
     if (!profile || !userData) {
       throw ApiError.BadRequest("Пользователь не найден")
     }
 
-    const userDto = new UserDto(profile)
+    const profileDto = new ProfileDto(profile)
 
-    return userDto
+    return { ...profileDto, checkSubscribe: checkSubscribe && checkSubscribe.id }
   }
+
+  async acceptFriend(refreshToken, userId) {
+    // if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
+
+    // const userData = tokenService.validateRefreshToken(refreshToken)
+    // const tokenFromDb = await tokenService.findToken(refreshToken)
+
+    // if (!userData || !tokenFromDb) {
+    //   throw ApiError.UnauthorizedError()
+    // }
+
+    // const checkAcceptFriends = await friendsModel.findOne({ users: userId })
+
+
+    // console.log(checkAcceptFriends)
+
+    // return "null"
+  }
+
+  async getFriends(refreshToken, userId) {
+    if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
+
+    const userData = tokenService.validateRefreshToken(refreshToken)
+    const tokenFromDb = await tokenService.findToken(refreshToken)
+
+    if (!userData || !tokenFromDb) {
+      throw ApiError.UnauthorizedError()
+    }
+
+    const friends = await friendsModel.find({ _id: userId })
+
+    return friends
+  }
+
+  async getSubscribers(refreshToken, userId) {
+    if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
+
+    const userData = tokenService.validateRefreshToken(refreshToken)
+    const tokenFromDb = await tokenService.findToken(refreshToken)
+
+    if (!userData || !tokenFromDb) {
+      throw ApiError.UnauthorizedError()
+    }
+
+    const subscribers = await subscribersModel.find({ id: userId })
+
+    return subscribers
+  }
+
 
   async uploadOptions(refreshToken, file) {
     const userData = tokenService.validateRefreshToken(refreshToken)
@@ -158,11 +277,35 @@ class UserService {
 
     if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
 
-    const users = await userModel.find().populate({ path: "options", select: "image defaultColor" })
+    const users = await userModel.find().populate({ path: "options", select: "image defaultColor" }).sort({ createdAt: -1 })
 
-    const usersDto = users.map((e) => new UserDto(e))
+    const profileDto = users.map((e) => new ProfileDto(e))
 
-    return usersDto
+    return profileDto
+  }
+
+  async getSubscriptions(refreshToken, userId) {
+    if (!mongoose.isObjectIdOrHexString(userId.user)) throw ApiError.InvalidId()
+
+    const userData = tokenService.validateRefreshToken(refreshToken);
+    const tokenFromDb = await tokenService.findToken(refreshToken)
+
+    if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
+
+    const subscribtions = await subscribersModel
+      .findOne({ user: userId.user })
+      .populate({
+        path: "subscribers",
+        select: "_id name options",
+        populate: {
+          path: "options",
+          select: "image defaultColor"
+        }
+      })
+
+    if (!subscribtions) throw ApiError.BadRequest("Вы ни на кого не подписаны!")
+
+    return subscribtions
   }
 
 
@@ -174,19 +317,43 @@ class UserService {
 
     if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
 
+    const subscribers = await subscribersModel.findOne({ user: userId, })
+    const checkSubscribe = await subscribersModel.findOne({ user: userId, subscribers: { $all: [userData.id] } })
+
+    if (!subscribers) {
+      await subscribersModel.create({ user: userId, subscribers: userData.id })
+    } else {
+      if (!checkSubscribe) {
+        subscribers.subscribers.push(userData.id)
+        return await subscribers.save()
+      } else {
+        throw ApiError.BadRequest("Вы уже подписаны на пользователя")
+      }
+    }
+  }
+
+
+  async subscribeNews(refreshToken, userId) {
+    if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
+
+    const userData = tokenService.validateRefreshToken(refreshToken);
+    const tokenFromDb = await tokenService.findToken(refreshToken)
+
+    if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
+
     const news = await newsModel.findOne({ owner: userData.id })
-    const checkSubscribe = await newsModel.findOne({ owner: userData.id, newsFrom: { $all: [userId] } })
 
     if (!news) {
       await newsModel.create({ owner: userData.id, newsFrom: userId })
-      return "Created"
-    }
-
-    if (!checkSubscribe) {
-      news.newsFrom.push(userId)
-      return await news.save()
     } else {
-      throw ApiError.BadRequest("Пользователь уже находится у вас в друзьях")
+      const checkSubscribeNews = await newsModel.findOne({ owner: userData.id, newsFrom: { $all: [userId] } })
+
+      if (!checkSubscribeNews) {
+        news.newsFrom.push(userId)
+        await news.save()
+      } else {
+        throw ApiError.BadRequest("Вы уже подписаны новости на пользователя")
+      }
     }
   }
 }
