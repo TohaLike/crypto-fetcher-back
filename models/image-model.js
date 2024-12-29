@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
 
 const ImageSchema = new Schema({
-  fileName: { type: Array }
+  fileName: { type: [String] }
 }, { timestamps: true })
 
 

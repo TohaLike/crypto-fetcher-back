@@ -2,7 +2,7 @@ import { model, Schema } from "mongoose";
 
 const ProfileOptionsSchema = new Schema({
   user: { type: Schema.Types.ObjectId, ref: "User" },
-  image: { type: Object },
+  image: { type: [String] },
   defaultColor: { type: String }
 }, { timestamps: true })
 

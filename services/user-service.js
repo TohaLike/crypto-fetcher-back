@@ -1,17 +1,18 @@
-import { userModel } from "../models/user-model.js"
+import ApiError from "../exceptions/api-error.js";
+import mongoose from "mongoose";
+import bcrypt from "bcrypt";
+import { roomModel } from "../models/room-model.js";
 import { v4 as uuid } from 'uuid';
+import { userModel } from "../models/user-model.js"
 import { mailService } from "./mail-service.js"
 import { tokenService } from "./token-service.js"
-import bcrypt from "bcrypt"
-import UserDto from "../dtos/user-dto.js"
-import ApiError from "../exceptions/api-error.js";
-import { roomModel } from "../models/room-model.js";
-import mongoose from "mongoose";
 import { newsModel } from "../models/news-model.js";
 import { profileOptionsModel } from "../models/profile-options-model.js";
-import ProfileDto from "../dtos/profile-dto.js";
 import { friendsModel } from "../models/friends-model.js";
 import { subscribersModel } from "../models/subscribers-model.js";
+import SubscriptionsDto from "../dtos/subscriptions-dto.js";
+import ProfileDto from "../dtos/profile-dto.js";
+import UserDto from "../dtos/user-dto.js"
 
 class UserService {
   generateColor(size) {
@@ -256,14 +257,16 @@ class UserService {
 
     const color = this.generateColor(6)
 
+    const paths = file.map((e) => e.path)
+
     if (!options) {
-      const createOptions = await profileOptionsModel.create({ user: userData.id, defaultColor: color, image: file })
+      const createOptions = await profileOptionsModel.create({ user: userData.id, defaultColor: color, image: paths })
 
       await profile.updateOne({ options: createOptions.id })
 
       return createOptions
     } else {
-      const updateOptions = await profileOptionsModel.findOneAndUpdate({ user: userData.id }, { image: file })
+      const updateOptions = await profileOptionsModel.findOneAndUpdate({ user: userData.id }, { image: paths })
 
       await profile.updateOne({ options: updateOptions.id })
 
@@ -277,7 +280,18 @@ class UserService {
 
     if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
 
-    const users = await userModel.find().populate({ path: "options", select: "image defaultColor" }).sort({ createdAt: -1 })
+    const users = await userModel.find()
+      .populate({ path: "options", select: "image defaultColor", })
+      .populate({
+        path: "subscribers",
+        select: "subscribers",
+        populate: {
+          path: "subscribers",
+          match: { _id: { $in: userData.id } },
+          select: "name options",
+        }
+      })
+      .sort({ createdAt: -1 })
 
     const profileDto = users.map((e) => new ProfileDto(e))
 
@@ -297,15 +311,26 @@ class UserService {
       .populate({
         path: "subscribers",
         select: "_id name options",
-        populate: {
+        populate: [{
+          path: "subscribers",
+          select: "subscribers",
+          populate: {
+            path: "subscribers",
+            match: { _id: { $in: userData.id } },
+            select: "name"
+          }
+        },
+        {
           path: "options",
-          select: "image defaultColor"
-        }
+          select: "image",
+        }],
       })
 
     if (!subscribtions) throw ApiError.BadRequest("Вы ни на кого не подписаны!")
 
-    return subscribtions
+    const subscribtionsDto = new SubscriptionsDto(subscribtions)
+
+    return subscribtionsDto
   }
 
 
