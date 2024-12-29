@@ -16,11 +16,9 @@ class ImageService {
 
     if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
 
-    const paths = files.map((e) => e.path)
-      
-    await imageModel.create({ fileName: paths })
+    await imageModel.create({ fileName: [...files] })
 
-    const data = (await postModel.create({ owner: userData.id, text: text, images: paths }))
+    const data = (await postModel.create({ owner: userData.id, text: text, images: [...files] }))
       .populate(
         {
           path: "owner",

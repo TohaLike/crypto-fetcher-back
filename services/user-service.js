@@ -264,13 +264,13 @@ class UserService {
     const paths = file.map((e) => e.path)
 
     if (!options) {
-      const createOptions = await profileOptionsModel.create({ user: userData.id, defaultColor: color, image: paths })
+      const createOptions = await profileOptionsModel.create({ user: userData.id, defaultColor: color, image: [...file] })
 
       await profile.updateOne({ options: createOptions.id })
 
       return createOptions
     } else {
-      const updateOptions = await profileOptionsModel.findOneAndUpdate({ user: userData.id }, { image: paths })
+      const updateOptions = await profileOptionsModel.findOneAndUpdate({ user: userData.id }, { image: [...file] })
 
       await profile.updateOne({ options: updateOptions.id })
 
