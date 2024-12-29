@@ -13,6 +13,7 @@ import { subscribersModel } from "../models/subscribers-model.js";
 import SubscriptionsDto from "../dtos/subscriptions-dto.js";
 import ProfileDto from "../dtos/profile-dto.js";
 import UserDto from "../dtos/user-dto.js"
+import FollowingDto from "../dtos/following-dto.js";
 
 class UserService {
   generateColor(size) {
@@ -195,26 +196,9 @@ class UserService {
     return { ...profileDto, checkSubscribe: checkSubscribe && checkSubscribe.id }
   }
 
-  async acceptFriend(refreshToken, userId) {
-    // if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
 
-    // const userData = tokenService.validateRefreshToken(refreshToken)
-    // const tokenFromDb = await tokenService.findToken(refreshToken)
-
-    // if (!userData || !tokenFromDb) {
-    //   throw ApiError.UnauthorizedError()
-    // }
-
-    // const checkAcceptFriends = await friendsModel.findOne({ users: userId })
-
-
-    // console.log(checkAcceptFriends)
-
-    // return "null"
-  }
-
-  async getFriends(refreshToken, userId) {
-    if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
+  async getFollowings(refreshToken, userId) {
+    if (!mongoose.isObjectIdOrHexString(userId.user)) throw ApiError.InvalidId()
 
     const userData = tokenService.validateRefreshToken(refreshToken)
     const tokenFromDb = await tokenService.findToken(refreshToken)
@@ -223,9 +207,29 @@ class UserService {
       throw ApiError.UnauthorizedError()
     }
 
-    const friends = await friendsModel.find({ _id: userId })
+    const friends = await newsModel
+      .findOne({ owner: userId.user })
+      .populate({
+        path: "newsFrom",
+        select: "name options subscribers",
+        populate: [
+          {
+            path: "subscribers",
+            select: "subscribers",
+            populate: {
+              path: "subscribers",
+              match: { _id: { $in: userData.id } },
+              select: "_id name"
+            }
+          },
+          { path: "options", select: "image defaultColor" }
+        ]
+      })
 
-    return friends
+
+    const friendsDto = new FollowingDto(friends)
+
+    return friendsDto
   }
 
   async getSubscribers(refreshToken, userId) {
@@ -322,7 +326,7 @@ class UserService {
         },
         {
           path: "options",
-          select: "image",
+          select: "image defaultColor",
         }],
       })
 

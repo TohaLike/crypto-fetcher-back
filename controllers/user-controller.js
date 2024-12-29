@@ -119,26 +119,14 @@ class UserContoller {
     }
   }
 
-  async acceptFriend(req, res, next) {
-    try {
-      const { refreshToken } = req.cookies
-      const { userId } = req.body
 
-      const acceptFriend = await userService.acceptFriend(refreshToken, userId)
-
-      return res.json(acceptFriend)
-    } catch (e) {
-      next(e)
-    }
-  }
-
-  async getFriends(req, res, next) {
+  async getFollowings(req, res, next) {
     try {
       const { refreshToken } = req.cookies
 
-      const getFriends = await userService.getFriends(refreshToken, req.params)
+      const getFollowings = await userService.getFollowings(refreshToken, req.params)
 
-      return res.json(getFriends)
+      return res.json(getFollowings)
     } catch (e) {
       next(e)
     }
