@@ -165,11 +165,11 @@ class SocketService {
       })
 
       if (roomData) {
-        await messageModel.create({ sender: userData.name, message, createdAt, userId: userData.id, roomId: roomData.id });
-        const updateMessage = await lastMessageModel.findOneAndUpdate({ roomId: roomData.id, }, { messageText: message, createdAt })
+        await messageModel.create({ sender: userData.name, message, userId: userData.id, roomId: roomData.id });
+        const updateMessage = await lastMessageModel.findOneAndUpdate({ roomId: roomData.id, }, { messageText: message,})
 
         if (!updateMessage) {
-          const messageId = await lastMessageModel.create({ roomId: roomData.id, messageText: message, createdAt, sender: userData.id })
+          const messageId = await lastMessageModel.create({ roomId: roomData.id, messageText: message, sender: userData.id })
           await roomData.updateOne({ lastMessage: messageId.id })
         }
 
@@ -188,18 +188,16 @@ class SocketService {
     if (!refreshToken) throw ApiError.UnauthorizedError()
 
     const userData = tokenService.validateRefreshToken(refreshToken)
-    const createdAt = new Date();
     const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, userId] } })
 
     if (!roomData) {
       const createRoom = await roomModel.create({
         name: userData.name,
         owner: userData.id,
-        createdAt,
         usersId: [userData.id, userId],
       });
 
-      const messageId = await lastMessageModel.create({ roomId: createRoom.id, messageText: lastMessage, createdAt, sender: userData.id })
+      const messageId = await lastMessageModel.create({ roomId: createRoom.id, messageText: lastMessage, sender: userData.id })
 
       await createRoom.updateOne({ lastMessage: messageId.id })
 
