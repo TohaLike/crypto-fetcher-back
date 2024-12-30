@@ -53,7 +53,7 @@ class UserContoller {
 
       const userData = await userService.refresh(refreshToken)
 
-      if (!userData) return res.clearCookie("refreshToken")
+      if (!userData) res.clearCookie("refreshToken")
 
       console.log(userData)
       
