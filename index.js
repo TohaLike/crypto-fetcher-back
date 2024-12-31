@@ -36,9 +36,8 @@ const fileFilter = (req, file, cb) => {
     file.mimetype === "image/jpg" ||
     file.mimetype === "image/jpeg" ||
     file.mimetype === "image/heif" ||
-    file.mimetype === "image/heic" ||
-    file.mimetype === "image/png"
-
+    file.mimetype === "image/HEIF" ||
+    file.mimetype === "image/PNG"
   ) {
     cb(null, true);
   }
@@ -63,7 +62,7 @@ app.use(multer({
   storage: storageConfig,
   limits: { fileSize: 1 * 1024 * 1024 },
   fileFilter: fileFilter
-}).any("file", 5));
+}).array("file", 5));
 
 app.use(express.static(__dirname + '/images'));
 app.use('/images', express.static('images'));
