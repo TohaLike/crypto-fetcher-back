@@ -385,6 +385,34 @@ class UserService {
       }
     }
   }
+
+
+  async unsubscribeUser(refreshToken, userId) {
+    if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
+
+    const userData = tokenService.validateRefreshToken(refreshToken);
+    const tokenFromDb = await tokenService.findToken(refreshToken)
+
+    if (!userData || !tokenFromDb) throw ApiError.UnauthorizedError()
+
+
+    const findUserSubs = await subscribersModel.findOne({ user: userId, subscribers: userData.id })
+
+    const findUserNews = await newsModel.findOne({ owner: userData.id, newsFrom: userId })
+
+    // console.log(findUserSubs, userId)
+
+    if (findUserSubs) {
+      if (findUserNews) {
+        findUserNews.newsFrom.pull(userId)
+        await findUserNews.save()
+      }
+      findUserSubs.subscribers.pull(userData.id)
+      return await findUserSubs.save()
+    }
+
+
+  }
 }
 
 export const userService = new UserService()

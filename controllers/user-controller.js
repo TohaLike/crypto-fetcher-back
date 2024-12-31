@@ -119,6 +119,19 @@ class UserContoller {
     }
   }
 
+  async unsubscribeUser(req, res, next) {
+    try {
+      const { refreshToken } = req.cookies
+      const { userId } = req.body
+
+      const unsubsribe = await userService.unsubscribeUser(refreshToken, userId)
+
+      return res.json(unsubsribe)
+    } catch (e) {
+      next(e)
+    }
+  }
+
 
   async getFollowings(req, res, next) {
     try {
