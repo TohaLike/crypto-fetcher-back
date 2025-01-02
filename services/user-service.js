@@ -153,38 +153,10 @@ class UserService {
       .populate({
         path: "subscribers",
         select: "subscribers",
-        populate: {
-          path: "subscribers",
-          select: "name options",
-          options: {
-            limit: 2,
-            sort: {
-              createdAt: - 1
-            }
-          },
-          populate: {
-            path: "options",
-            select: "image defaultColor"
-          }
-        }
       })
       .populate({
         path: "following",
         select: "newsFrom",
-        populate: {
-          path: "newsFrom",
-          select: "name options",
-          options: {
-            limit: 2,
-            sort: {
-              createdAt: - 1
-            }
-          },
-          populate: {
-            path: "options",
-            select: "image defaultColor"
-          }
-        }
       })
 
     if (!profile || !userData) {
@@ -193,7 +165,12 @@ class UserService {
 
     const profileDto = new ProfileDto(profile)
 
-    return { ...profileDto, checkSubscribe: checkSubscribe && checkSubscribe.id }
+    return {
+      ...profileDto,
+      checkSubscribe: checkSubscribe && checkSubscribe.id,
+      countFollowers: profile.subscribers.subscribers && profile.subscribers.subscribers.length,
+      countFollowings: profile.following.newsFrom && profile.following.newsFrom.length,
+    }
   }
 
 
