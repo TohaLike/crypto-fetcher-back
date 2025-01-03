@@ -167,7 +167,7 @@ class UserService {
 
     return {
       ...profileDto,
-      checkSubscribe: checkSubscribe && checkSubscribe.id,
+      checkSubscribe: checkSubscribe ? checkSubscribe.id : false,
       countFollowers: profile.subscribers.subscribers && profile.subscribers.subscribers.length,
       countFollowings: profile.following.newsFrom && profile.following.newsFrom.length,
     }

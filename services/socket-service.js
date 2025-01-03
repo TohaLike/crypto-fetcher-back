@@ -154,13 +154,17 @@ class SocketService {
 
       const token = cookie.parse(socket.handshake.headers.cookie)
       const userData = tokenService.validateRefreshToken(token.refreshToken)
-      const createdAt = new Date();
+      const updatedAt = new Date();
 
       const roomData = await roomModel.findOne({ usersId: { $all: [userData.id, userId] } }).populate({
-        path: "usersId", select: "name", match: {
+        path: "usersId", select: "name options", match: {
           _id: {
             $ne: userId
           }
+        },
+        populate: {
+          path: "options",
+          select: "image defaultColor"
         }
       })
 
@@ -173,9 +177,9 @@ class SocketService {
           await roomData.updateOne({ lastMessage: messageId.id })
         }
 
-        io.to(roomData.id).emit("send__message", userData.name, message, userData.id, createdAt)
+        io.to(roomData.id).emit("send__message", userData.name, message, userData.id, updatedAt)
 
-        io.to(userId).emit("room__message", userData.name, message, roomData.id, createdAt, roomData.usersId)
+        io.to(userId).emit("room__message", userData.name, message, roomData.id, updatedAt, roomData.usersId)
 
         this.messageStore.push({ userId: userId, message: message })
       }
@@ -238,7 +242,7 @@ class SocketService {
           $ne: userData.id
         }
       }
-    }).populate("lastMessage", "messageText createdAt")
+    }).populate("lastMessage", "messageText createdAt updatedAt")
 
 
     if (!rooms) return
