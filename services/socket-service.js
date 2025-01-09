@@ -152,6 +152,8 @@ class SocketService {
     socket.on("send__message", async (message, userId) => {
       if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
 
+      if (message.length > 2400) return JSON.stringify(ApiError.BadRequest("errror message"))
+
       const token = cookie.parse(socket.handshake.headers.cookie)
       const userData = tokenService.validateRefreshToken(token.refreshToken)
       const updatedAt = new Date();
@@ -170,7 +172,7 @@ class SocketService {
 
       if (roomData) {
         await messageModel.create({ sender: userData.name, message, userId: userData.id, roomId: roomData.id });
-        const updateMessage = await lastMessageModel.findOneAndUpdate({ roomId: roomData.id, }, { messageText: message,})
+        const updateMessage = await lastMessageModel.findOneAndUpdate({ roomId: roomData.id, }, { messageText: message, })
 
         if (!updateMessage) {
           const messageId = await lastMessageModel.create({ roomId: roomData.id, messageText: message, sender: userData.id })
