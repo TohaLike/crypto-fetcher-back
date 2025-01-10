@@ -32,6 +32,21 @@ class ImageService {
     return data
   }
 
+  async deletePost(refreshToken, postId) {
+    const userData = tokenService.validateRefreshToken(refreshToken)
+    const token = await tokenService.findToken(refreshToken)
+
+    if (!userData || !token) throw ApiError.UnauthorizedError()
+
+    const findPost = await postModel.findOne({ _id: postId, owner: userData.id })
+
+
+    if (findPost) {
+      await postModel.deleteOne({ _id: postId, owner: userData.id })
+      return findPost
+    }
+  }
+
   async getSubscribePosts(refreshToken, page, limit) {
     const userData = tokenService.validateRefreshToken(refreshToken)
     const token = await tokenService.findToken(refreshToken)

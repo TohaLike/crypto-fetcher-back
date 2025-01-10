@@ -338,7 +338,6 @@ class UserService {
     }
   }
 
-
   async subscribeNews(refreshToken, userId) {
     if (!mongoose.isObjectIdOrHexString(userId)) throw ApiError.InvalidId()
 

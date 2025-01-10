@@ -50,7 +50,6 @@ class ImageController {
     }
   }
 
-
   async getUserPosts(req, res, next) {
     try {
       const { refreshToken } = req.cookies
@@ -59,6 +58,29 @@ class ImageController {
       const userPosts = await imageService.getUserPosts(refreshToken, params)
 
       return res.json(userPosts)
+    } catch (e) {
+      next(e)
+    }
+  }
+
+  // async deleteProfileImage(req, res, next) {
+  //   try {
+  //     const { refreshToken } = req.cookies
+
+
+  //   } catch (e) {
+  //     next(e)
+  //   }
+  // }
+
+  async deletePost(req, res, next) {
+    try {
+      const { refreshToken } = req.cookies
+      const { postId } = req.body
+
+      const deletePost = await imageService.deletePost(refreshToken, postId)
+
+      return res.json(deletePost)
     } catch (e) {
       next(e)
     }

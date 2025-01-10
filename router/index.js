@@ -27,6 +27,7 @@ router.post("/subscribe", userControllers.subscribeUser)
 router.post("/subscribe/news", userControllers.subscribeNews)
 router.post("/update_subscriptions", imageController.loadMore)
 router.post("/unsubscribe_user", userControllers.unsubscribeUser)
+router.post("/delete_post", imageController.deletePost)
 
 router.get("/subscriptions/:user", authMiddleware, userControllers.getSubscriptions)
 router.get("/following/:user", authMiddleware, userControllers.getFollowings)
